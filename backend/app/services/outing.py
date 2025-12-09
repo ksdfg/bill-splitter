@@ -1,5 +1,4 @@
 from collections import defaultdict
-from tkinter.constants import TRUE
 
 from pydantic import BaseModel
 
@@ -43,8 +42,8 @@ def calculate_balance(outing: Outing) -> OutingPaymentBalance:
         else:
             debtors.append(PersonBalance(name=key, amount=value * -1))
 
-    creditors.sort(key=lambda x: x.amount, reverse=TRUE)
-    debtors.sort(key=lambda x: x.amount, reverse=TRUE)
+    creditors.sort(key=lambda x: x.amount, reverse=True)
+    debtors.sort(key=lambda x: x.amount, reverse=True)
 
     return OutingPaymentBalance(creditors=creditors, debtors=debtors)
 

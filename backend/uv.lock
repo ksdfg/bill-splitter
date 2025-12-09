@@ -33,7 +33,7 @@ wheels = [
 ]
 
 [[package]]
-name = "app"
+name = "bill-splitter"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

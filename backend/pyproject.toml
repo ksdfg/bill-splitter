@@ -1,5 +1,5 @@
 [project]
-name = "app"
+name = "bill-splitter"
 version = "0.1.0"
 description = "A small utility to split bills amongst friends"
 readme = "README.md"
