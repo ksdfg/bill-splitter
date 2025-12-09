@@ -11,6 +11,9 @@ router = APIRouter()
 
 @router.post("/split")
 async def split(outing: Outing) -> OutingSplit:
+    """
+    Calculate the optimal split of expenses for an outing.
+    """
     balance = calculate_balance(outing)
     outing_split = calculate_outing_split_with_minimal_transactions(balance)
     return outing_split
