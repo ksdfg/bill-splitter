@@ -120,3 +120,644 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
             assert round(payment["amount"], 2) == 315.00
         elif payment["to"] == "Bob":
             assert round(payment["amount"], 2) == 360.00
+
+
+def test_split__outing_with_empty_bills_list():
+    outing_data = {"bills": []}
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "too_short"
+    assert error["loc"] == ["body", "bills"]
+    assert error["msg"] == "List should have at least 1 item after validation, not 0"
+    assert error["input"] == []
+    assert error["ctx"]["field_type"] == "List"
+    assert error["ctx"]["min_length"] == 1
+    assert error["ctx"]["actual_length"] == 0
+
+
+def test_split__bill_with_empty_items_list():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "too_short"
+    assert error["loc"] == ["body", "bills", 0, "items"]
+    assert error["msg"] == "List should have at least 1 item after validation, not 0"
+    assert error["input"] == []
+    assert error["ctx"]["field_type"] == "List"
+    assert error["ctx"]["min_length"] == 1
+    assert error["ctx"]["actual_length"] == 0
+
+
+def test_split__item_with_empty_name():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "string_too_short"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "name"]
+    assert error["msg"] == "String should have at least 1 character"
+    assert error["input"] == ""
+    assert error["ctx"]["min_length"] == 1
+
+
+def test_split__item_with_zero_price():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 0,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "greater_than"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "price"]
+    assert error["msg"] == "Input should be greater than 0"
+    assert error["input"] == 0
+    assert error["ctx"]["gt"] == 0
+
+
+def test_split__item_with_negative_price():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": -100,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "greater_than"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "price"]
+    assert error["msg"] == "Input should be greater than 0"
+    assert error["input"] == -100
+    assert error["ctx"]["gt"] == 0
+
+
+def test_split__item_with_zero_quantity():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 0,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "greater_than"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "quantity"]
+    assert error["msg"] == "Input should be greater than 0"
+    assert error["input"] == 0
+    assert error["ctx"]["gt"] == 0
+
+
+def test_split__item_with_negative_quantity():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": -5,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "greater_than"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "quantity"]
+    assert error["msg"] == "Input should be greater than 0"
+    assert error["input"] == -5
+    assert error["ctx"]["gt"] == 0
+
+
+def test_split__item_with_empty_consumed_by():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": [],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "too_short"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "consumed_by"]
+    assert error["msg"] == "List should have at least 1 item after validation, not 0"
+    assert error["input"] == []
+    assert error["ctx"]["field_type"] == "List"
+    assert error["ctx"]["min_length"] == 1
+    assert error["ctx"]["actual_length"] == 0
+
+
+def test_split__bill_with_empty_paid_by():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "string_too_short"
+    assert error["loc"] == ["body", "bills", 0, "paid_by"]
+    assert error["msg"] == "String should have at least 1 character"
+    assert error["input"] == ""
+    assert error["ctx"]["min_length"] == 1
+
+
+def test_split__bill_with_negative_tax_rate():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": -0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "greater_than_equal"
+    assert error["loc"] == ["body", "bills", 0, "tax_rate"]
+    assert error["msg"] == "Input should be greater than or equal to 0"
+    assert error["input"] == -0.05
+    assert error["ctx"]["ge"] == 0
+
+
+def test_split__bill_with_tax_rate_greater_than_one():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 1.5,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "less_than_equal"
+    assert error["loc"] == ["body", "bills", 0, "tax_rate"]
+    assert error["msg"] == "Input should be less than or equal to 1"
+    assert error["input"] == 1.5
+    assert error["ctx"]["le"] == 1
+
+
+def test_split__bill_with_negative_service_charge():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": -0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "greater_than_equal"
+    assert error["loc"] == ["body", "bills", 0, "service_charge"]
+    assert error["msg"] == "Input should be greater than or equal to 0"
+    assert error["input"] == -0.1
+    assert error["ctx"]["ge"] == 0
+
+
+def test_split__bill_with_service_charge_greater_than_one():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 1.5,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "less_than_equal"
+    assert error["loc"] == ["body", "bills", 0, "service_charge"]
+    assert error["msg"] == "Input should be less than or equal to 1"
+    assert error["input"] == 1.5
+    assert error["ctx"]["le"] == 1
+
+
+def test_split__missing_required_field_bills():
+    outing_data = {}
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills"]
+    assert error["msg"] == "Field required"
+    assert error["input"] == {}
+
+
+def test_split__missing_required_field_paid_by():
+    outing_data = {
+        "bills": [
+            {
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "paid_by"]
+    assert error["msg"] == "Field required"
+
+
+def test_split__missing_required_field_items():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "items"]
+    assert error["msg"] == "Field required"
+
+
+def test_split__missing_required_field_name():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "name"]
+    assert error["msg"] == "Field required"
+
+
+def test_split__missing_required_field_price():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "quantity": 1,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "price"]
+    assert error["msg"] == "Field required"
+
+
+def test_split__missing_required_field_quantity():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "consumed_by": ["Alice", "Bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "quantity"]
+    assert error["msg"] == "Field required"
+
+
+def test_split__missing_required_field_consumed_by():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "Bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/outings/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "items", 0, "consumed_by"]
+    assert error["msg"] == "Field required"
