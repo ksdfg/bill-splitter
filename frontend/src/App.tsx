@@ -54,7 +54,7 @@ function AppContent() {
             aria-label={isAuto ? "Switch to manual theme mode" : "Switch to system default theme"}
             title={isAuto ? `Switch to ${isDark ? "light" : "dark"} mode` : "Switch to system default"}
           >
-            {isAuto ? (isDark ? "🌙" : "☀️") : isDark ? "🌙✓" : "☀️✓"}
+            {isAuto ? (isDark ? "🌙" : "☀️") : isDark ? "🌙 📌" : "☀️ 📌"}
           </button>
         </div>
       </header>

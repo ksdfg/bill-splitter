@@ -33,7 +33,7 @@ export default function PaymentPlans({ splitResults, onBackToBills, isMobile }: 
             {/* Display the 'Receives' status ONLY if there are no outgoing payments
                             AND the net amount is positive (the person is a net receiver). */}
             {flow.outgoing.length === 0 && flow.netAmount > 0 && (
-              <p style={{ color: "#16a085", fontWeight: "bold" }}>✓ {flow.uiTextOverride || "Receives funds"}</p>
+              <p style={{ color: "#16a085", fontWeight: "bold" }}>📌 {flow.uiTextOverride || "Receives funds"}</p>
             )}
 
             {/* If the person is a net receiver but still needs to pay someone else,
