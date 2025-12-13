@@ -5,3 +5,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:80"
+    environment:
+      - CORS_ALLOW_HOSTS=["http://localhost:3000"]
+    env_file:
+      - ./backend/.env
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:8080"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8000
