@@ -1,6 +1,5 @@
 from google import genai
 from google.genai import types
-from pydantic import BaseModel, Field
 
 from app.core.settings import settings
 
