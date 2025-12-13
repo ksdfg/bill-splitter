@@ -142,12 +142,9 @@ export default function BillForm({ initialData, onSave, onCancel }: BillFormProp
       <h3 className="panel-header">{title}</h3>
 
       {/* OCR Uploader */}
-      <div
-        className="form-group"
-        style={{ border: "1px solid #3498db", padding: "10px", borderRadius: "4px", background: "#ecf0f1" }}
-      >
+      <div className="form-group">
         <label htmlFor="ocr-upload" className="btn btn-blue" style={{ textAlign: "center" }}>
-          {isUploading ? "Processing..." : "Upload Receipt"}
+          {isUploading ? "Processing..." : "Auto-fill from bill image using OCR"}
         </label>
         <input
           id="ocr-upload"
@@ -157,9 +154,6 @@ export default function BillForm({ initialData, onSave, onCancel }: BillFormProp
           style={{ display: "none" }}
           disabled={isUploading}
         />
-        <small style={{ display: "block", textAlign: "center", marginTop: "5px" }}>
-          Auto-fill from bill image using OCR
-        </small>
       </div>
 
       <div className="form-group">

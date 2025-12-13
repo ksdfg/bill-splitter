@@ -1,5 +1,5 @@
 // src/api/api.ts
-import { Bill, OutingSplit, OCRBill, NetPaymentFlow, PaymentPlan } from "../types/schema";
+import { Bill, OutingSplit, OCRBill, NetPaymentFlow } from "../types/schema";
 
 // --- Configuration ---
 // Read API Base URL from environment variables, defaulting to a common local host if not set.
