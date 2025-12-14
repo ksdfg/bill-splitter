@@ -178,9 +178,9 @@ const BillSplitter = () => {
       <div className="max-w-7xl mx-auto mb-12">
         <div className="flex items-center gap-3 mb-2">
           <Receipt size={24} className="text-gray-900 dark:text-gray-100" strokeWidth={2} />
-          <h1 className="text-2xl font-normal text-gray-900 dark:text-gray-100">bill splitter</h1>
+          <h1 className="text-2xl font-mono text-gray-900 dark:text-gray-100">bill splitter</h1>
         </div>
-        <p className="text-sm text-gray-700 dark:text-gray-400">split bills fairly among friends</p>
+        <p className="text-sm font-mono text-gray-700 dark:text-gray-400">split bills fairly among friends</p>
       </div>
 
       <div className="max-w-7xl mx-auto">
@@ -188,13 +188,13 @@ const BillSplitter = () => {
           <div className="grid grid-cols-2 gap-8" style={{ height: "calc(100vh - 200px)" }}>
             <div className="border-2 border-gray-900 dark:border-gray-200 p-6 overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-normal text-gray-900 dark:text-gray-100">bills</h2>
+                <h2 className="text-lg font-mono text-gray-900 dark:text-gray-100">bills</h2>
                 <span className="text-xs text-gray-700 dark:text-gray-400 font-mono">{bills.length}</span>
               </div>
 
               <button
                 onClick={handleAddBill}
-                className="w-full py-3 mb-6 border-2 border-dashed border-gray-400 dark:border-gray-600 text-gray-800 dark:text-gray-300 hover:border-gray-900 dark:hover:border-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors flex items-center justify-center gap-2 text-sm"
+                className="w-full py-3 mb-6 border-2 border-dashed border-gray-400 dark:border-gray-600 text-gray-800 dark:text-gray-300 hover:border-gray-900 dark:hover:border-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors flex items-center justify-center gap-2 text-sm font-mono"
               >
                 <Plus size={16} strokeWidth={2} />
                 add new bill
@@ -210,7 +210,7 @@ const BillSplitter = () => {
 
               <button
                 onClick={handleCalculateSplit}
-                className="w-full mt-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-full mt-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono"
                 disabled={bills.length === 0}
               >
                 calculate split
@@ -247,7 +247,7 @@ const BillSplitter = () => {
                     <div className="w-16 h-16 mx-auto mb-4 border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center">
                       <Receipt size={24} className="text-gray-400 dark:text-gray-600" strokeWidth={2} />
                     </div>
-                    <p className="text-gray-600 dark:text-gray-500 text-sm">add bills or calculate split</p>
+                    <p className="text-gray-600 dark:text-gray-500 text-sm font-mono">add bills or calculate split</p>
                   </div>
                 </div>
               )}

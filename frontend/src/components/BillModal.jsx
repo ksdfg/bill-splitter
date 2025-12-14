@@ -27,7 +27,7 @@ const BillModal = ({
       className={`${show ? "block" : "hidden"} lg:block bg-white dark:bg-stone-900 border-2 border-gray-900 dark:border-gray-200 lg:h-full overflow-y-auto`}
     >
       <div className="border-b-2 border-gray-900 dark:border-gray-200 p-6 flex justify-between items-center">
-        <h2 className="text-lg font-normal text-gray-900 dark:text-gray-100">
+        <h2 className="text-lg font-mono text-gray-900 dark:text-gray-100">
           {editingBillId ? "edit bill" : "new bill"}
         </h2>
         <button
@@ -148,8 +148,7 @@ const BillModal = ({
           <button
             onClick={onClose}
             className="px-6 py-3 border-2 border-gray-400 dark:border-gray-600 text-gray-800 dark:text-gray-300 hover:border-gray-900 dark:hover:border-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-          >
-          </button>
+          ></button>
         </div>
       </div>
     </div>
