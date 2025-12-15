@@ -5,3 +5,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:80"
+    env_file:
+      - .env
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "5173:8080"
