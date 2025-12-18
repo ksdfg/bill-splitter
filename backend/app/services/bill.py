@@ -163,9 +163,9 @@ def calculate_outing_split_with_minimal_transactions(
         creditor.amount -= amount_to_settle
 
         # Move to the next debtor/creditor once their balance is fully settled
-        if debtor.amount == 0:
+        if round(debtor.amount, 2) == 0:
             debtor_index += 1
-        if creditor.amount == 0:
+        if round(creditor.amount, 2) == 0:
             creditor_index += 1
 
     return OutingSplit(
