@@ -72,8 +72,16 @@ def get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
             image_bytes=image_bytes,
             mime_type=mime_type,
         )
+    elif settings.LITELLM_MODEL:
+        from app.services import litellm_service
+
+        bill_data = litellm_service.generate_content_from_image(
+            prompt=BILL_OCR_PROMPT,
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+        )
     else:
-        raise ValueError("API key is not set in settings for any LLM.")
+        raise ValueError("API key is not set in settings for any LLM. Set GEMINI_API_KEY or LITELLM_MODEL.")
 
     return OCRBill.model_validate_json(bill_data)
 
