@@ -19,14 +19,13 @@ Extract a Bill object with the following structure:
   - quantity: The quantity ordered (integer, must be positive)
 - tax_rate: The tax rate applied to the bill as a decimal (float, between 0.0 and 1.0, default is 0.0 if not found)
 - service_charge: The service charge as a decimal (float, between 0.0 and 1.0, default is 0.0 if not found)
+- amount_paid: The final total amount that must be paid, after applying all tax, service charges and discounts (float, must be positive)
 
 Important notes:
-- Do NOT include the "paid_by" field in your response
-- Do NOT include the "consumed_by" field in your response
 - Extract only the items that appear on the bill
 - Calculate tax_rate and service_charge from the bill if visible, otherwise use defaults
 - Ensure all extracted values match the specified types and constraints
-- Return the response as valid JSON that matches the Bill schema (excluding paid_by and consumed_by)
+- Return the response as valid JSON that matches the Bill schema
 
 Please analyze the bill image and extract the information now.
 """
