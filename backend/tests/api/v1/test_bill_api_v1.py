@@ -12,6 +12,7 @@ def test_split__simple_bill_split_with_tax_and_service_charge():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1207.50,
                 "items": [
                     {
                         "name": "Pizza",
@@ -67,6 +68,7 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
                 "paid_by": "alice",
                 "tax_rate": 0,
                 "service_charge": 0.1,
+                "amount_paid": 990,
                 "items": [
                     {
                         "name": "Pizza",
@@ -150,6 +152,7 @@ def test_split__bill_with_empty_items_list():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [],
             }
         ]
@@ -180,6 +183,7 @@ def test_split__item_with_empty_name():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "",
@@ -215,6 +219,7 @@ def test_split__item_with_zero_price():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -250,6 +255,7 @@ def test_split__item_with_negative_price():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -285,6 +291,7 @@ def test_split__item_with_zero_quantity():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -320,6 +327,7 @@ def test_split__item_with_negative_quantity():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -355,6 +363,7 @@ def test_split__item_with_empty_consumed_by():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -392,6 +401,7 @@ def test_split__bill_with_empty_paid_by():
                 "paid_by": "",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -427,6 +437,7 @@ def test_split__bill_with_negative_tax_rate():
                 "paid_by": "bob",
                 "tax_rate": -0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -462,6 +473,7 @@ def test_split__bill_with_tax_rate_greater_than_one():
                 "paid_by": "bob",
                 "tax_rate": 1.5,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -497,6 +509,7 @@ def test_split__bill_with_negative_service_charge():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": -0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -532,6 +545,7 @@ def test_split__bill_with_service_charge_greater_than_one():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 1.5,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -584,6 +598,7 @@ def test_split__missing_required_field_paid_by():
             {
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -617,6 +632,7 @@ def test_split__missing_required_field_items():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
             }
         ]
     }
@@ -642,6 +658,7 @@ def test_split__missing_required_field_name():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "price": 600,
@@ -674,6 +691,7 @@ def test_split__missing_required_field_price():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -706,6 +724,7 @@ def test_split__missing_required_field_quantity():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -738,6 +757,7 @@ def test_split__missing_required_field_consumed_by():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",

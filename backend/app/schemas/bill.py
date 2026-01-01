@@ -28,6 +28,7 @@ class Item(BaseModel):
 class Bill(BaseModel):
     items: list[Item] = Field(min_length=1)
     paid_by: str = Field(min_length=1)
+    amount_paid: float = Field(gt=0.0)
     tax_rate: float = Field(default=0.05, ge=0.0, le=1.0)
     service_charge: float = Field(default=0.0, ge=0.0, le=1.0)
 

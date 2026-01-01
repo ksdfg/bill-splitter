@@ -14,6 +14,7 @@ def test_calculate_balance__simple_bill_split_with_tax_and_service_charge():
                 paid_by="bob",
                 tax_rate=0.05,
                 service_charge=0.1,
+                amount_paid=1207.50,
                 items=[
                     Item(
                         name="Pizza",
@@ -58,6 +59,7 @@ def test_calculate_balance__multiple_bills_with_different_service_charges_and_no
                 paid_by="alice",
                 tax_rate=0,
                 service_charge=0.1,
+                amount_paid=990,
                 items=[
                     Item(
                         name="Pizza",
@@ -71,6 +73,7 @@ def test_calculate_balance__multiple_bills_with_different_service_charges_and_no
                 paid_by="bob",
                 tax_rate=0,
                 service_charge=0.15,
+                amount_paid=862.50,
                 items=[
                     Item(
                         name="Coffee",
