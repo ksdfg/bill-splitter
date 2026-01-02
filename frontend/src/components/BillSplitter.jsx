@@ -17,6 +17,7 @@ const BillSplitter = () => {
   const [taxRate, setTaxRate] = useState("5");
   const [serviceCharge, setServiceCharge] = useState("0");
   const [items, setItems] = useState([{ name: "", price: 0, quantity: 1, consumed_by: [] }]);
+  const [amountPaid, setAmountPaid] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ const BillSplitter = () => {
     setTaxRate("5");
     setServiceCharge("0");
     setItems([{ name: "", price: 0, quantity: 1, consumed_by: [] }]);
+    setAmountPaid("");
     setEditingBillId(null);
   };
 
@@ -46,6 +48,7 @@ const BillSplitter = () => {
     setTaxRate((bill.tax_rate * 100).toString());
     setServiceCharge((bill.service_charge * 100).toString());
     setItems(bill.items);
+    setAmountPaid(bill.amount_paid != null ? String(bill.amount_paid) : "");
     setShowModal(true);
     setShowResults(false);
     setPaymentPlans([]);
@@ -76,6 +79,7 @@ const BillSplitter = () => {
       tax_rate: parseFloat(taxRate) / 100,
       service_charge: parseFloat(serviceCharge) / 100,
       items: validItems,
+      amount_paid: amountPaid ? parseFloat(amountPaid) : 0,
     };
 
     if (editingBillId) {
@@ -142,6 +146,8 @@ const BillSplitter = () => {
           consumed_by: [],
         })),
       );
+      // populate amount paid from OCR response if available
+      setAmountPaid(ocrData.amount_paid.toString());
 
       alert("Receipt scanned! Please add who consumed each item.");
     } catch (error) {
@@ -228,6 +234,8 @@ const BillSplitter = () => {
                   setTaxRate={setTaxRate}
                   serviceCharge={serviceCharge}
                   setServiceCharge={setServiceCharge}
+                  amountPaid={amountPaid}
+                  setAmountPaid={setAmountPaid}
                   items={items}
                   isUploading={isUploading}
                   onClose={handleCloseModal}

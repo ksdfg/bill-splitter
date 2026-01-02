@@ -12,6 +12,7 @@ def test_split__simple_bill_split_with_tax_and_service_charge():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1207.50,
                 "items": [
                     {
                         "name": "Pizza",
@@ -67,6 +68,7 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
                 "paid_by": "alice",
                 "tax_rate": 0,
                 "service_charge": 0.1,
+                "amount_paid": 990,
                 "items": [
                     {
                         "name": "Pizza",
@@ -80,6 +82,7 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
                 "paid_by": "bob",
                 "tax_rate": 0,
                 "service_charge": 0.15,
+                "amount_paid": 862.50,
                 "items": [
                     {
                         "name": "Coffee",
@@ -121,6 +124,123 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
         elif payment["to"] == "bob":
             assert round(payment["amount"], 2) == 360.00
 
+def test_split__simple_bill_split_with_discounted_amount_paid():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "amount_paid": 1000.00,  # discounted from 1207.50
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["alice", "bob", "charlie"],
+                    },
+                    {
+                        "name": "Coke",
+                        "price": 150,
+                        "quantity": 1,
+                        "consumed_by": ["alice", "bob"],
+                    },
+                    {
+                        "name": "Ice Cream",
+                        "price": 300,
+                        "quantity": 1,
+                        "consumed_by": ["charlie"],
+                    },
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/bills/split", json=outing_data)
+    assert response.status_code == 200
+
+    outing_split = response.json()
+
+    assert "payment_plans" in outing_split
+    payment_plans = outing_split["payment_plans"]
+    assert len(payment_plans) == 2
+
+    for payment_plan in payment_plans:
+        assert "name" in payment_plan
+        assert payment_plan["name"] in ["alice", "charlie"]
+        assert "payments" in payment_plan
+
+        if payment_plan["name"] == "alice":
+            assert len(payment_plan["payments"]) == 1
+            assert payment_plan["payments"][0]["to"] == "bob"
+            assert round(payment_plan["payments"][0]["amount"], 2) == 261.90
+        elif payment_plan["name"] == "charlie":
+            assert len(payment_plan["payments"]) == 1
+            assert payment_plan["payments"][0]["to"] == "bob"
+            assert round(payment_plan["payments"][0]["amount"], 2) == 476.19
+
+def test_split__multiple_bills_with_discounts():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "alice",
+                "tax_rate": 0,
+                "service_charge": 0.1,
+                "amount_paid": 800,  # discounted from 990
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 900,
+                        "quantity": 1,
+                        "consumed_by": ["alice", "bob", "charlie"],
+                    }
+                ],
+            },
+            {
+                "paid_by": "bob",
+                "tax_rate": 0,
+                "service_charge": 0.15,
+                "amount_paid": 700.00,  # discounted from 862.50
+                "items": [
+                    {
+                        "name": "Coffee",
+                        "price": 300,
+                        "quantity": 1,
+                        "consumed_by": ["alice", "charlie"],
+                    },
+                    {
+                        "name": "Cake",
+                        "price": 450,
+                        "quantity": 1,
+                        "consumed_by": ["alice", "bob", "charlie"],
+                    },
+                ],
+            },
+        ]
+    }
+
+    response = test_client.post("/api/v1/bills/split", json=outing_data)
+    assert response.status_code == 200
+
+    outing_split = response.json()
+
+    assert "payment_plans" in outing_split
+    payment_plans = outing_split["payment_plans"]
+    assert len(payment_plans) == 1
+
+    payment_plan = payment_plans[0]
+    assert "name" in payment_plan
+    assert payment_plan["name"] == "charlie"
+
+    assert "payments" in payment_plan
+    for payment in payment_plan["payments"]:
+        assert "to" in payment
+        assert payment["to"] in ["bob", "alice"]
+        assert "amount" in payment
+        if payment["to"] == "alice":
+            assert round(payment["amount"], 2) == 253.33
+        elif payment["to"] == "bob":
+            assert round(payment["amount"], 2) == 293.33
 
 def test_split__outing_with_empty_bills_list():
     outing_data = {"bills": []}
@@ -150,6 +270,7 @@ def test_split__bill_with_empty_items_list():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [],
             }
         ]
@@ -180,6 +301,7 @@ def test_split__item_with_empty_name():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "",
@@ -215,6 +337,7 @@ def test_split__item_with_zero_price():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -250,6 +373,7 @@ def test_split__item_with_negative_price():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -285,6 +409,7 @@ def test_split__item_with_zero_quantity():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -320,6 +445,7 @@ def test_split__item_with_negative_quantity():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -355,6 +481,7 @@ def test_split__item_with_empty_consumed_by():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -392,6 +519,7 @@ def test_split__bill_with_empty_paid_by():
                 "paid_by": "",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -427,6 +555,7 @@ def test_split__bill_with_negative_tax_rate():
                 "paid_by": "bob",
                 "tax_rate": -0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -462,6 +591,7 @@ def test_split__bill_with_tax_rate_greater_than_one():
                 "paid_by": "bob",
                 "tax_rate": 1.5,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -497,6 +627,7 @@ def test_split__bill_with_negative_service_charge():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": -0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -532,6 +663,7 @@ def test_split__bill_with_service_charge_greater_than_one():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 1.5,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -584,6 +716,7 @@ def test_split__missing_required_field_paid_by():
             {
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -617,6 +750,7 @@ def test_split__missing_required_field_items():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
             }
         ]
     }
@@ -642,6 +776,7 @@ def test_split__missing_required_field_name():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "price": 600,
@@ -674,6 +809,7 @@ def test_split__missing_required_field_price():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -706,6 +842,7 @@ def test_split__missing_required_field_quantity():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -738,6 +875,7 @@ def test_split__missing_required_field_consumed_by():
                 "paid_by": "bob",
                 "tax_rate": 0.05,
                 "service_charge": 0.1,
+                "amount_paid": 1,
                 "items": [
                     {
                         "name": "Pizza",
@@ -760,4 +898,37 @@ def test_split__missing_required_field_consumed_by():
     error = error_response["detail"][0]
     assert error["type"] == "missing"
     assert error["loc"] == ["body", "bills", 0, "items", 0, "consumed_by"]
+    assert error["msg"] == "Field required"
+
+
+def test_split__missing_required_field_amount_paid():
+    outing_data = {
+        "bills": [
+            {
+                "paid_by": "bob",
+                "tax_rate": 0.05,
+                "service_charge": 0.1,
+                "items": [
+                    {
+                        "name": "Pizza",
+                        "price": 600,
+                        "quantity": 1,
+                        "consumed_by": ["alice", "bob"],
+                    }
+                ],
+            }
+        ]
+    }
+
+    response = test_client.post("/api/v1/bills/split", json=outing_data)
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "bills", 0, "amount_paid"]
     assert error["msg"] == "Field required"

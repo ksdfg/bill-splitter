@@ -14,6 +14,9 @@ GENERATE_CONTENT_CONFIG = types.GenerateContentConfig(
             "service_charge": genai.types.Schema(
                 type=genai.types.Type.NUMBER,
             ),
+            "amount_paid": genai.types.Schema(
+                type=genai.types.Type.NUMBER,
+            ),
             "items": genai.types.Schema(
                 type=genai.types.Type.ARRAY,
                 items=genai.types.Schema(
@@ -29,9 +32,20 @@ GENERATE_CONTENT_CONFIG = types.GenerateContentConfig(
                             type=genai.types.Type.NUMBER,
                         ),
                     },
+                    required=[
+                        "name",
+                        "price",
+                        "quantity",
+                    ],
                 ),
             ),
         },
+        required=[
+            "items",
+            "amount_paid",
+            "tax_rate",
+            "service_charge",
+        ],
     ),
 )
 

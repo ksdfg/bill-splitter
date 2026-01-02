@@ -14,6 +14,7 @@ def test_calculate_balance__simple_bill_split_with_tax_and_service_charge():
                 paid_by="bob",
                 tax_rate=0.05,
                 service_charge=0.1,
+                amount_paid=1207.50,
                 items=[
                     Item(
                         name="Pizza",
@@ -58,6 +59,7 @@ def test_calculate_balance__multiple_bills_with_different_service_charges_and_no
                 paid_by="alice",
                 tax_rate=0,
                 service_charge=0.1,
+                amount_paid=990,
                 items=[
                     Item(
                         name="Pizza",
@@ -71,6 +73,7 @@ def test_calculate_balance__multiple_bills_with_different_service_charges_and_no
                 paid_by="bob",
                 tax_rate=0,
                 service_charge=0.15,
+                amount_paid=862.50,
                 items=[
                     Item(
                         name="Coffee",
@@ -100,6 +103,106 @@ def test_calculate_balance__multiple_bills_with_different_service_charges_and_no
     assert len(balance.debtors) == 1
     assert balance.debtors[0].name == "charlie"
     assert round(balance.debtors[0].amount, 2) == 675.00
+
+
+def test_calculate_balance__simple_bill_split_with_tax_and_service_charge__discounted_amount_paid():
+    # Same bill as first test, but with a discount applied to amount_paid
+    outing = Outing(
+        bills=[
+            Bill(
+                paid_by="bob",
+                tax_rate=0.05,
+                service_charge=0.1,
+                amount_paid=1000.00,  # discounted from 1207.50
+                items=[
+                    Item(
+                        name="Pizza",
+                        price=600,
+                        quantity=1,
+                        consumed_by=["alice", "bob", "charlie"],
+                    ),
+                    Item(
+                        name="Coke",
+                        price=150,
+                        quantity=1,
+                        consumed_by=["alice", "bob"],
+                    ),
+                    Item(
+                        name="Ice Cream",
+                        price=300,
+                        quantity=1,
+                        consumed_by=["charlie"],
+                    ),
+                ],
+            )
+        ]
+    )
+
+    balance = calculate_balance(outing)
+
+    assert len(balance.creditors) == 1
+    assert balance.creditors[0].name == "bob"
+    assert balance.creditors[0].amount == 738.10
+
+    assert len(balance.debtors) == 2
+    assert balance.debtors[0].name == "charlie"
+    assert balance.debtors[0].amount == 476.19
+    assert balance.debtors[1].name == "alice"
+    assert balance.debtors[1].amount == 261.90
+
+
+def test_calculate_balance__multiple_bills_with_different_service_charges_and_no_tax__discounted_amount_paid():
+    outing = Outing(
+        bills=[
+            Bill(
+                paid_by="alice",
+                tax_rate=0,
+                service_charge=0.1,
+                amount_paid=800,  # discounted from 990
+                items=[
+                    Item(
+                        name="Pizza",
+                        price=900,
+                        quantity=1,
+                        consumed_by=["alice", "bob", "charlie"],
+                    ),
+                ],
+            ),
+            Bill(
+                paid_by="bob",
+                tax_rate=0,
+                service_charge=0.15,
+                amount_paid=700.00,  # discounted from 862.50
+                items=[
+                    Item(
+                        name="Coffee",
+                        price=300,
+                        quantity=1,
+                        consumed_by=["alice", "charlie"],
+                    ),
+                    Item(
+                        name="Cake",
+                        price=450,
+                        quantity=1,
+                        consumed_by=["alice", "bob", "charlie"],
+                    ),
+                ],
+            ),
+        ]
+    )
+
+    balance = calculate_balance(outing)
+
+    assert len(balance.creditors) == 2
+
+    assert balance.creditors[0].name == "bob"
+    assert balance.creditors[0].amount == 293.33
+    assert balance.creditors[1].name == "alice"
+    assert balance.creditors[1].amount == 253.33
+
+    assert len(balance.debtors) == 1
+    assert balance.debtors[0].name == "charlie"
+    assert balance.debtors[0].amount == 546.67
 
 
 def test_calculate_outing_split_with_minimal_transactions__simple_bill_split_with_tax_and_service_charge():

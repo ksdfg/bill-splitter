@@ -19,14 +19,13 @@ Extract a Bill object with the following structure:
   - quantity: The quantity ordered (integer, must be positive)
 - tax_rate: The tax rate applied to the bill as a decimal (float, between 0.0 and 1.0, default is 0.0 if not found)
 - service_charge: The service charge as a decimal (float, between 0.0 and 1.0, default is 0.0 if not found)
+- amount_paid: The final total amount that must be paid, after applying all tax, service charges and discounts (float, must be positive)
 
 Important notes:
-- Do NOT include the "paid_by" field in your response
-- Do NOT include the "consumed_by" field in your response
 - Extract only the items that appear on the bill
 - Calculate tax_rate and service_charge from the bill if visible, otherwise use defaults
 - Ensure all extracted values match the specified types and constraints
-- Return the response as valid JSON that matches the Bill schema (excluding paid_by and consumed_by)
+- Return the response as valid JSON that matches the Bill schema
 
 Please analyze the bill image and extract the information now.
 """
@@ -98,30 +97,34 @@ def calculate_balance(outing: Outing) -> OutingPaymentBalance:
     balance = defaultdict(float)
 
     for bill in outing.bills:
-        total_price = 0.0
+        balance[bill.paid_by] += round(bill.amount_paid, 2)
+
+        # Apply tax and service charge multiplier to the item cost
+        additional_charge_rate = 1 + bill.tax_rate + bill.service_charge
+
+        # Calculate total price, and if the amount paid is less than total price, calculate discount applied
+        total_price = round(sum(item.price * item.quantity for item in bill.items) * additional_charge_rate, 2)
+        discount_rate = round(bill.amount_paid, 2) / total_price
+        print(f"Total price: {total_price}, Amount paid: {bill.amount_paid}, Discount rate: {discount_rate}")
 
         for item in bill.items:
-            # Apply tax and service charge multiplier to the item cost
-            additional_charge_rate = 1 + bill.tax_rate + bill.service_charge
-            cost = item.price * item.quantity * additional_charge_rate
+            # Calculate actual cost for the item after applying additional charges and discount
+            cost = item.price * item.quantity * additional_charge_rate * discount_rate
 
-            total_price += cost
             # Split cost equally among consumers and round to avoid floating-point precision issues
-            cost_per_person = round(cost / len(item.consumed_by), 2)
+            cost_per_person = cost / len(item.consumed_by)
 
             for consumer in item.consumed_by:
                 balance[consumer] -= cost_per_person
-
-        balance[bill.paid_by] += total_price
 
     creditors = []
     debtors = []
 
     for key, value in dict(balance).items():
         if value > 0:
-            creditors.append(PersonBalance(name=key, amount=value))
+            creditors.append(PersonBalance(name=key, amount=round(value, 2)))
         else:
-            debtors.append(PersonBalance(name=key, amount=value * -1))
+            debtors.append(PersonBalance(name=key, amount=round(value, 2) * -1))
 
     # Sort by amount descending to match largest debts/credits first for optimal settlement
     creditors.sort(key=lambda x: x.amount, reverse=True)
@@ -154,7 +157,7 @@ def calculate_outing_split_with_minimal_transactions(
         creditor = balance.creditors[creditor_index]
 
         # Match the smaller of the two amounts to settle as much as possible in one transaction
-        amount_to_settle = round(min(debtor.amount, creditor.amount), 2)
+        amount_to_settle = min(debtor.amount, creditor.amount)
         if amount_to_settle > 0:
             all_payments[debtor.name][creditor.name] = amount_to_settle
 

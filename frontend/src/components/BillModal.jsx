@@ -11,6 +11,8 @@ const BillModal = ({
   setTaxRate,
   serviceCharge,
   setServiceCharge,
+  amountPaid,
+  setAmountPaid,
   items,
   isUploading,
   onClose,
@@ -70,6 +72,22 @@ const BillModal = ({
             onChange={(e) => setPaidBy(e.target.value)}
             placeholder="enter name"
             className="w-full px-0 py-2 bg-transparent border-b-2 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 transition-colors"
+          />
+        </div>
+
+        {/* Amount Paid */}
+        <div>
+          <label className="block text-xs text-gray-700 dark:text-gray-400 mb-2 font-mono tracking-wider">
+            AMOUNT PAID
+          </label>
+          <input
+            type="number"
+            value={amountPaid}
+            onChange={(e) => setAmountPaid(e.target.value)}
+            placeholder="0.00"
+            className="w-full px-0 py-2 bg-transparent border-b-2 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 transition-colors font-mono"
+            min="0"
+            step="0.01"
           />
         </div>
 
