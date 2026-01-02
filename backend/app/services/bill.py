@@ -15,7 +15,7 @@ Your task is to analyze the provided image of a bill and extract the following i
 Extract a Bill object with the following structure:
 - items: A list of items, where each item contains:
   - name: The name of the item (string, non-empty)
-  - price: The price of the item (float, must be positive)
+  - price: The price of the item (float, must be positive, skip items with 0 price)
   - quantity: The quantity ordered (integer, must be positive)
 - tax_rate: The tax rate applied to the bill as a decimal (float, between 0.0 and 1.0, default is 0.0 if not found)
 - service_charge: The service charge as a decimal (float, between 0.0 and 1.0, default is 0.0 if not found)
@@ -71,8 +71,16 @@ def get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
             image_bytes=image_bytes,
             mime_type=mime_type,
         )
+    elif settings.LITELLM_MODEL:
+        from app.services import litellm_service
+
+        bill_data = litellm_service.generate_content_from_image(
+            prompt=BILL_OCR_PROMPT,
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+        )
     else:
-        raise ValueError("API key is not set in settings for any LLM.")
+        raise ValueError("API key is not set in settings for any LLM. Set GEMINI_API_KEY or LITELLM_MODEL.")
 
     return OCRBill.model_validate_json(bill_data)
 
