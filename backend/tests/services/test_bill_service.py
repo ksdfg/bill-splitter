@@ -1,10 +1,16 @@
-from app.schemas.bill import Bill, Item, Outing
+from json import dumps
+
+import pytest
+
+from app.schemas.bill import Bill, Item, OCRBill, Outing
 from app.services.bill import (
     OutingPaymentBalance,
     PersonBalance,
     calculate_balance,
     calculate_outing_split_with_minimal_transactions,
+    get_bill_details_from_image,
 )
+from tests.conftest import mock_genai_client_with_response_success
 
 
 def test_calculate_balance__simple_bill_split_with_tax_and_service_charge():
@@ -249,3 +255,40 @@ def test_calculate_outing_split_with_minimal_transactions__multiple_bills_with_d
             assert round(payment.amount, 2) == 360.00
         elif payment.to == "alice":
             assert round(payment.amount, 2) == 315.00
+
+
+def test_get_bill_details_from_image(monkeypatch: pytest.MonkeyPatch):
+    # Configure genai client to return a mock with desired response
+    bill = {
+        "tax_rate": 0.05,
+        "service_charge": 0.1,
+        "amount_paid": 1207.50,
+        "items": [
+            {
+                "name": "Pizza",
+                "price": 600.0,
+                "quantity": 1,
+            },
+            {
+                "name": "Coke",
+                "price": 150.0,
+                "quantity": 1,
+            },
+            {
+                "name": "Ice Cream",
+                "price": 300.0,
+                "quantity": 1,
+            },
+        ],
+    }
+    genai_response_text = dumps(bill, sort_keys=True)
+    client_instance = mock_genai_client_with_response_success(monkeypatch, genai_response_text)
+
+    ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
+
+    # Verify the model used is the expected model
+    last_call = client_instance.models.last_call
+    assert last_call is not None, "expected generate_content to be called"
+    assert last_call["model"] == "gemini-2.5-flash"
+
+    assert ocr_bill == OCRBill.model_validate_json(genai_response_text)
