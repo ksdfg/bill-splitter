@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile
 
 from app.schemas.bill import OCRBill, Outing, OutingSplit
 from app.services.bill import (
@@ -17,7 +17,7 @@ async def extract_bill_details_from_image(file: UploadFile) -> OCRBill:
     """
     content_type = file.content_type
     if not content_type or not content_type.startswith("image/"):
-        raise ValueError("Invalid file type. Please upload an image file.")
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image file.")
 
     with file.file as f:
         content = f.read()
