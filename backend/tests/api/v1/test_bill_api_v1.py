@@ -1,6 +1,10 @@
+from json import dumps
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import mock_genai_client_with_response_success
 
 test_client = TestClient(app)
 
@@ -124,6 +128,7 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
         elif payment["to"] == "bob":
             assert round(payment["amount"], 2) == 360.00
 
+
 def test_split__simple_bill_split_with_discounted_amount_paid():
     outing_data = {
         "bills": [
@@ -178,6 +183,7 @@ def test_split__simple_bill_split_with_discounted_amount_paid():
             assert len(payment_plan["payments"]) == 1
             assert payment_plan["payments"][0]["to"] == "bob"
             assert round(payment_plan["payments"][0]["amount"], 2) == 476.19
+
 
 def test_split__multiple_bills_with_discounts():
     outing_data = {
@@ -241,6 +247,7 @@ def test_split__multiple_bills_with_discounts():
             assert round(payment["amount"], 2) == 253.33
         elif payment["to"] == "bob":
             assert round(payment["amount"], 2) == 293.33
+
 
 def test_split__outing_with_empty_bills_list():
     outing_data = {"bills": []}
@@ -931,4 +938,72 @@ def test_split__missing_required_field_amount_paid():
     error = error_response["detail"][0]
     assert error["type"] == "missing"
     assert error["loc"] == ["body", "bills", 0, "amount_paid"]
+    assert error["msg"] == "Field required"
+
+
+def test_ocr__valid_image_file(monkeypatch: pytest.MonkeyPatch):
+    # Configure genai client to return a mock with desired response
+    bill = {
+        "tax_rate": 0.05,
+        "service_charge": 0.1,
+        "amount_paid": 1207.50,
+        "items": [
+            {
+                "name": "Pizza",
+                "price": 600.0,
+                "quantity": 1,
+            },
+            {
+                "name": "Coke",
+                "price": 150.0,
+                "quantity": 1,
+            },
+            {
+                "name": "Ice Cream",
+                "price": 300.0,
+                "quantity": 1,
+            },
+        ],
+    }
+    genai_response_text = dumps(bill, sort_keys=True)
+    client_instance = mock_genai_client_with_response_success(monkeypatch, genai_response_text)
+
+    files = {"file": ("test_image.png", b"dummy image content", "image/png")}
+
+    response = test_client.post("/api/v1/bills/ocr", files=files)
+    assert response.status_code == 200
+
+    # Verify the model used is the expected model
+    last_call = client_instance.models.last_call
+    assert last_call is not None, "expected generate_content to be called"
+    assert last_call["model"] == "gemini-2.5-flash"
+
+    ocr_response = response.json()
+    assert dumps(ocr_response, sort_keys=True) == genai_response_text
+
+
+def test_ocr__invalid_file_type():
+    files = {"file": ("test.txt", b"dummy content", "text/plain")}
+
+    response = test_client.post("/api/v1/bills/ocr", files=files)
+    assert response.status_code == 400
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert error_response["detail"] == "Invalid file type. Please upload an image file."
+
+
+def test_ocr__no_file():
+    response = test_client.post("/api/v1/bills/ocr", files={})
+    assert response.status_code == 422
+
+    error_response = response.json()
+
+    assert "detail" in error_response
+    assert len(error_response["detail"]) == 1
+
+    error = error_response["detail"][0]
+    assert error["type"] == "missing"
+    assert error["loc"] == ["body", "file"]
     assert error["msg"] == "Field required"
