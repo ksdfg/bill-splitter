@@ -7,6 +7,10 @@ import app.core.settings as settings_module
 import app.services.gemini as gemini_module
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "mock_llm_response(response): Set the mock Gemini LLM response for the test.")
+
+
 @pytest.fixture(autouse=True)
 def set_dummy_gemini_key(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """
@@ -54,7 +58,7 @@ class MockGenaiClient:
     """
     Mock of genai.Client with only the parts needed for testing.
     """
-    
+
     class MockModels:
         def __init__(self, response: Optional[GenaiResponse]) -> None:
             self._response: Optional[GenaiResponse] = response
@@ -72,7 +76,9 @@ class MockGenaiClient:
 # Helpers to configure the mock genai client for a desired response.
 
 
-def mock_genai_client_with_response(monkeypatch: pytest.MonkeyPatch, response: Optional[GenaiResponse]) -> MockGenaiClient:
+def mock_genai_client_with_response(
+    monkeypatch: pytest.MonkeyPatch, response: Optional[GenaiResponse]
+) -> MockGenaiClient:
     """
     Create a MockClient with `response`, patch `gemini_module.genai.Client` to
     return that instance, and return the instance for optional inspection.
@@ -85,23 +91,7 @@ def mock_genai_client_with_response(monkeypatch: pytest.MonkeyPatch, response: O
 
 def mock_genai_client_with_response_success(monkeypatch: pytest.MonkeyPatch, text: str) -> MockGenaiClient:
     """Build a successful response and configure the mocked client."""
-    response = GenaiResponse(candidates=[GenaiResponse.Candidate(content=GenaiResponse.Content(parts=[GenaiResponse.Part(text=text)]))])
-    return mock_genai_client_with_response(monkeypatch, response)
-
-
-def mock_genai_client_with_response_no_candidates(monkeypatch: pytest.MonkeyPatch) -> MockGenaiClient:
-    """Configure the mocked client to return a response with no candidates."""
-    response = GenaiResponse(candidates=[])
-    return mock_genai_client_with_response(monkeypatch, response)
-
-
-def mock_genai_client_with_response_no_parts(monkeypatch: pytest.MonkeyPatch) -> MockGenaiClient:
-    """Configure the mocked client to return a candidate with no content.parts."""
-    response = GenaiResponse(candidates=[GenaiResponse.Candidate(content=GenaiResponse.Content(parts=[]))])
-    return mock_genai_client_with_response(monkeypatch, response)
-
-
-def mock_genai_client_with_response_no_text(monkeypatch: pytest.MonkeyPatch) -> MockGenaiClient:
-    """Configure the mocked client to return a part whose text is None."""
-    response = GenaiResponse(candidates=[GenaiResponse.Candidate(content=GenaiResponse.Content(parts=[GenaiResponse.Part(text=None)]))])
+    response = GenaiResponse(
+        candidates=[GenaiResponse.Candidate(content=GenaiResponse.Content(parts=[GenaiResponse.Part(text=text)]))]
+    )
     return mock_genai_client_with_response(monkeypatch, response)
