@@ -290,7 +290,7 @@ class TestGetBillDetailsFromImage:
             return self.llm_success_response_text
 
         monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", "fake-api-key")
-        monkeypatch.setattr("app.services.gemini.generate_content_from_image", mock_generate_content_from_image)
+        monkeypatch.setattr("app.services.bill.generate_content_from_image", mock_generate_content_from_image)
 
     def test_gemini(self, mock_gemini_service_method):
         ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")

@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.settings import settings
+
+# from app.main import app
 from app.main import app
 from app.schemas.bill import OCRBill
 from app.services import bill
@@ -977,23 +979,17 @@ class TestExtractBillDetailsFromImage:
             return self.success_bill
 
         monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", None)
-        monkeypatch.setattr("app.services.bill.get_bill_details_from_image", mock_get_bill_details_from_image)
+        monkeypatch.setattr("app.api.v1.endpoints.bill.get_bill_details_from_image", mock_get_bill_details_from_image)
         print("monkey patched get_bill_details_from_image method")
         yield "monkey patched get_bill_details_from_image method"
 
-    # def test_valid_image_file(self, mock_bill_service_method: str):
-    #     assert mock_bill_service_method == "monkey patched get_bill_details_from_image method"
+    def test_valid_image_file(self, mock_bill_service_method: str):
+        files = {"file": ("test_image.png", b"dummy image content", "image/png")}
+        response = TestClient(app).post("/api/v1/bills/ocr", files=files)
+        assert response.status_code == 200
 
-    #     response = bill.get_bill_details_from_image(b"", "")
-    #     assert response == self.success_bill
-    #     assert settings.GEMINI_API_KEY is None
-
-    #     files = {"file": ("test_image.png", b"dummy image content", "image/png")}
-    #     response = TestClient(app).post("/api/v1/bills/ocr", files=files)
-    #     assert response.status_code == 200
-
-    #     ocr_response = response.json()
-    #     assert dumps(ocr_response, sort_keys=True) == self.response_text
+        ocr_response = response.json()
+        assert dumps(ocr_response, sort_keys=True) == self.response_text
 
     def test_invalid_file_type(self, test_client: TestClient):
         files = {"file": ("test.txt", b"dummy content", "text/plain")}

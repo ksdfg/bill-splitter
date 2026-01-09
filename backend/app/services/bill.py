@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.core.settings import settings
 from app.schemas.bill import OCRBill, Outing, OutingSplit, Payment, PaymentPlan
-from app.services import gemini
+from app.services.gemini import generate_content_from_image
 
 BILL_OCR_PROMPT = """
 You are an expert at extracting information from bills and receipts.
@@ -66,7 +66,7 @@ GENERATE_CONTENT_CONFIG = types.GenerateContentConfig(
 
 def get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
     if settings.GEMINI_API_KEY:
-        bill_data = gemini.generate_content_from_image(
+        bill_data = generate_content_from_image(
             prompt=BILL_OCR_PROMPT,
             image_bytes=image_bytes,
             mime_type=mime_type,
