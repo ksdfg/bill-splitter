@@ -1,9 +1,14 @@
-from app.schemas.bill import Bill, Item, Outing
+from json import dumps
+
+import pytest
+
+from app.schemas.bill import Bill, Item, OCRBill, Outing
 from app.services.bill import (
     OutingPaymentBalance,
     PersonBalance,
     calculate_balance,
     calculate_outing_split_with_minimal_transactions,
+    get_bill_details_from_image,
 )
 
 
@@ -249,3 +254,50 @@ def test_calculate_outing_split_with_minimal_transactions__multiple_bills_with_d
             assert round(payment.amount, 2) == 360.00
         elif payment.to == "alice":
             assert round(payment.amount, 2) == 315.00
+
+
+class TestGetBillDetailsFromImage:
+    llm_success_response_text = dumps(
+        {
+            "tax_rate": 0.05,
+            "service_charge": 0.1,
+            "amount_paid": 1207.50,
+            "items": [
+                {
+                    "name": "Pizza",
+                    "price": 600.0,
+                    "quantity": 1,
+                },
+                {
+                    "name": "Coke",
+                    "price": 150.0,
+                    "quantity": 1,
+                },
+                {
+                    "name": "Ice Cream",
+                    "price": 300.0,
+                    "quantity": 1,
+                },
+            ],
+        },
+        sort_keys=True,
+    )
+    success_bill = OCRBill.model_validate_json(llm_success_response_text)
+
+    @pytest.fixture
+    def mock_gemini_service_method(self, monkeypatch: pytest.MonkeyPatch):
+        def mock_generate_content_from_image(prompt: str, image_bytes: bytes, mime_type: str) -> str:
+            return self.llm_success_response_text
+
+        monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", "fake-api-key")
+        monkeypatch.setattr("app.services.bill.generate_content_from_image", mock_generate_content_from_image)
+
+    def test_gemini(self, mock_gemini_service_method):
+        ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
+        assert ocr_bill == self.success_bill
+
+    def test_no_llm_service_set(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr("app.services.gemini.settings.GEMINI_API_KEY", None)
+        with pytest.raises(ValueError) as exc:
+            get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
+        assert "API key is not set in settings for any LLM." == str(exc.value)

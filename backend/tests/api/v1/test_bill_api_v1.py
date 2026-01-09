@@ -1,11 +1,18 @@
+from json import dumps
+from typing import Iterator
+
+import pytest
 from fastapi.testclient import TestClient
 
+from app.core.settings import settings
+
+# from app.main import app
 from app.main import app
+from app.schemas.bill import OCRBill
+from app.services import bill
 
-test_client = TestClient(app)
 
-
-def test_split__simple_bill_split_with_tax_and_service_charge():
+def test_split__simple_bill_split_with_tax_and_service_charge(test_client):
     outing_data = {
         "bills": [
             {
@@ -61,7 +68,7 @@ def test_split__simple_bill_split_with_tax_and_service_charge():
             assert round(payment_plan["payments"][0]["amount"], 2) == 575.00
 
 
-def test_split__multiple_bills_with_different_service_charges_and_no_tax():
+def test_split__multiple_bills_with_different_service_charges_and_no_tax(test_client):
     outing_data = {
         "bills": [
             {
@@ -124,7 +131,8 @@ def test_split__multiple_bills_with_different_service_charges_and_no_tax():
         elif payment["to"] == "bob":
             assert round(payment["amount"], 2) == 360.00
 
-def test_split__simple_bill_split_with_discounted_amount_paid():
+
+def test_split__simple_bill_split_with_discounted_amount_paid(test_client):
     outing_data = {
         "bills": [
             {
@@ -179,7 +187,8 @@ def test_split__simple_bill_split_with_discounted_amount_paid():
             assert payment_plan["payments"][0]["to"] == "bob"
             assert round(payment_plan["payments"][0]["amount"], 2) == 476.19
 
-def test_split__multiple_bills_with_discounts():
+
+def test_split__multiple_bills_with_discounts(test_client):
     outing_data = {
         "bills": [
             {
@@ -242,7 +251,8 @@ def test_split__multiple_bills_with_discounts():
         elif payment["to"] == "bob":
             assert round(payment["amount"], 2) == 293.33
 
-def test_split__outing_with_empty_bills_list():
+
+def test_split__outing_with_empty_bills_list(test_client):
     outing_data = {"bills": []}
 
     response = test_client.post("/api/v1/bills/split", json=outing_data)
@@ -263,7 +273,7 @@ def test_split__outing_with_empty_bills_list():
     assert error["ctx"]["actual_length"] == 0
 
 
-def test_split__bill_with_empty_items_list():
+def test_split__bill_with_empty_items_list(test_client):
     outing_data = {
         "bills": [
             {
@@ -294,7 +304,7 @@ def test_split__bill_with_empty_items_list():
     assert error["ctx"]["actual_length"] == 0
 
 
-def test_split__item_with_empty_name():
+def test_split__item_with_empty_name(test_client):
     outing_data = {
         "bills": [
             {
@@ -330,7 +340,7 @@ def test_split__item_with_empty_name():
     assert error["ctx"]["min_length"] == 1
 
 
-def test_split__item_with_zero_price():
+def test_split__item_with_zero_price(test_client):
     outing_data = {
         "bills": [
             {
@@ -366,7 +376,7 @@ def test_split__item_with_zero_price():
     assert error["ctx"]["gt"] == 0
 
 
-def test_split__item_with_negative_price():
+def test_split__item_with_negative_price(test_client):
     outing_data = {
         "bills": [
             {
@@ -402,7 +412,7 @@ def test_split__item_with_negative_price():
     assert error["ctx"]["gt"] == 0
 
 
-def test_split__item_with_zero_quantity():
+def test_split__item_with_zero_quantity(test_client):
     outing_data = {
         "bills": [
             {
@@ -438,7 +448,7 @@ def test_split__item_with_zero_quantity():
     assert error["ctx"]["gt"] == 0
 
 
-def test_split__item_with_negative_quantity():
+def test_split__item_with_negative_quantity(test_client):
     outing_data = {
         "bills": [
             {
@@ -474,7 +484,7 @@ def test_split__item_with_negative_quantity():
     assert error["ctx"]["gt"] == 0
 
 
-def test_split__item_with_empty_consumed_by():
+def test_split__item_with_empty_consumed_by(test_client):
     outing_data = {
         "bills": [
             {
@@ -512,7 +522,7 @@ def test_split__item_with_empty_consumed_by():
     assert error["ctx"]["actual_length"] == 0
 
 
-def test_split__bill_with_empty_paid_by():
+def test_split__bill_with_empty_paid_by(test_client):
     outing_data = {
         "bills": [
             {
@@ -548,7 +558,7 @@ def test_split__bill_with_empty_paid_by():
     assert error["ctx"]["min_length"] == 1
 
 
-def test_split__bill_with_negative_tax_rate():
+def test_split__bill_with_negative_tax_rate(test_client):
     outing_data = {
         "bills": [
             {
@@ -584,7 +594,7 @@ def test_split__bill_with_negative_tax_rate():
     assert error["ctx"]["ge"] == 0
 
 
-def test_split__bill_with_tax_rate_greater_than_one():
+def test_split__bill_with_tax_rate_greater_than_one(test_client):
     outing_data = {
         "bills": [
             {
@@ -620,7 +630,7 @@ def test_split__bill_with_tax_rate_greater_than_one():
     assert error["ctx"]["le"] == 1
 
 
-def test_split__bill_with_negative_service_charge():
+def test_split__bill_with_negative_service_charge(test_client):
     outing_data = {
         "bills": [
             {
@@ -656,7 +666,7 @@ def test_split__bill_with_negative_service_charge():
     assert error["ctx"]["ge"] == 0
 
 
-def test_split__bill_with_service_charge_greater_than_one():
+def test_split__bill_with_service_charge_greater_than_one(test_client):
     outing_data = {
         "bills": [
             {
@@ -692,7 +702,7 @@ def test_split__bill_with_service_charge_greater_than_one():
     assert error["ctx"]["le"] == 1
 
 
-def test_split__missing_required_field_bills():
+def test_split__missing_required_field_bills(test_client):
     outing_data = {}
 
     response = test_client.post("/api/v1/bills/split", json=outing_data)
@@ -710,7 +720,7 @@ def test_split__missing_required_field_bills():
     assert error["input"] == {}
 
 
-def test_split__missing_required_field_paid_by():
+def test_split__missing_required_field_paid_by(test_client):
     outing_data = {
         "bills": [
             {
@@ -743,7 +753,7 @@ def test_split__missing_required_field_paid_by():
     assert error["msg"] == "Field required"
 
 
-def test_split__missing_required_field_items():
+def test_split__missing_required_field_items(test_client):
     outing_data = {
         "bills": [
             {
@@ -769,7 +779,7 @@ def test_split__missing_required_field_items():
     assert error["msg"] == "Field required"
 
 
-def test_split__missing_required_field_name():
+def test_split__missing_required_field_name(test_client):
     outing_data = {
         "bills": [
             {
@@ -802,7 +812,7 @@ def test_split__missing_required_field_name():
     assert error["msg"] == "Field required"
 
 
-def test_split__missing_required_field_price():
+def test_split__missing_required_field_price(test_client):
     outing_data = {
         "bills": [
             {
@@ -835,7 +845,7 @@ def test_split__missing_required_field_price():
     assert error["msg"] == "Field required"
 
 
-def test_split__missing_required_field_quantity():
+def test_split__missing_required_field_quantity(test_client):
     outing_data = {
         "bills": [
             {
@@ -868,7 +878,7 @@ def test_split__missing_required_field_quantity():
     assert error["msg"] == "Field required"
 
 
-def test_split__missing_required_field_consumed_by():
+def test_split__missing_required_field_consumed_by(test_client):
     outing_data = {
         "bills": [
             {
@@ -901,7 +911,7 @@ def test_split__missing_required_field_consumed_by():
     assert error["msg"] == "Field required"
 
 
-def test_split__missing_required_field_amount_paid():
+def test_split__missing_required_field_amount_paid(test_client):
     outing_data = {
         "bills": [
             {
@@ -932,3 +942,76 @@ def test_split__missing_required_field_amount_paid():
     assert error["type"] == "missing"
     assert error["loc"] == ["body", "bills", 0, "amount_paid"]
     assert error["msg"] == "Field required"
+
+
+class TestExtractBillDetailsFromImage:
+    response_text = dumps(
+        {
+            "tax_rate": 0.05,
+            "service_charge": 0.1,
+            "amount_paid": 1207.50,
+            "items": [
+                {
+                    "name": "Pizza",
+                    "price": 600.0,
+                    "quantity": 1,
+                },
+                {
+                    "name": "Coke",
+                    "price": 150.0,
+                    "quantity": 1,
+                },
+                {
+                    "name": "Ice Cream",
+                    "price": 300.0,
+                    "quantity": 1,
+                },
+            ],
+        },
+        sort_keys=True,
+    )
+    success_bill = OCRBill.model_validate_json(response_text)
+
+    @pytest.fixture
+    def mock_bill_service_method(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+        def mock_get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
+            print("mocking service method")
+            return self.success_bill
+
+        monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", None)
+        monkeypatch.setattr("app.api.v1.endpoints.bill.get_bill_details_from_image", mock_get_bill_details_from_image)
+        print("monkey patched get_bill_details_from_image method")
+        yield "monkey patched get_bill_details_from_image method"
+
+    def test_valid_image_file(self, mock_bill_service_method: str):
+        files = {"file": ("test_image.png", b"dummy image content", "image/png")}
+        response = TestClient(app).post("/api/v1/bills/ocr", files=files)
+        assert response.status_code == 200
+
+        ocr_response = response.json()
+        assert dumps(ocr_response, sort_keys=True) == self.response_text
+
+    def test_invalid_file_type(self, test_client: TestClient):
+        files = {"file": ("test.txt", b"dummy content", "text/plain")}
+
+        response = test_client.post("/api/v1/bills/ocr", files=files)
+        assert response.status_code == 400
+
+        error_response = response.json()
+
+        assert "detail" in error_response
+        assert error_response["detail"] == "Invalid file type. Please upload an image file."
+
+    def test_ocr__no_file(self, test_client: TestClient):
+        response = test_client.post("/api/v1/bills/ocr", files={})
+        assert response.status_code == 422
+
+        error_response = response.json()
+
+        assert "detail" in error_response
+        assert len(error_response["detail"]) == 1
+
+        error = error_response["detail"][0]
+        assert error["type"] == "missing"
+        assert error["loc"] == ["body", "file"]
+        assert error["msg"] == "Field required"
