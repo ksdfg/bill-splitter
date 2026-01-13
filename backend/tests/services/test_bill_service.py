@@ -1,9 +1,8 @@
 import pytest
 
-from app.schemas.bill import Bill, Item, Outing
+from app.schemas.bill import Outing, OutingSplit
 from app.services.bill import (
     OutingPaymentBalance,
-    PersonBalance,
     calculate_balance,
     calculate_outing_split_with_minimal_transactions,
     get_bill_details_from_image,
@@ -12,190 +11,55 @@ from tests import examples
 
 
 class TestCalculateBalance:
-    def test_simple_bill_split_with_tax_and_service_charge(self):
-        balance = calculate_balance(examples.simple_with_tax_and_service_charge.OUTING)
-        assert balance == examples.simple_with_tax_and_service_charge.OUTING_PAYMENT_BALANCE
-
-    def test_multiple_bills_with_different_service_charges_and_no_tax(self):
-        outing = Outing(
-            bills=[
-                Bill(
-                    paid_by="alice",
-                    tax_rate=0,
-                    service_charge=0.1,
-                    amount_paid=990,
-                    items=[
-                        Item(
-                            name="Pizza",
-                            price=900,
-                            quantity=1,
-                            consumed_by=["alice", "bob", "charlie"],
-                        ),
-                    ],
-                ),
-                Bill(
-                    paid_by="bob",
-                    tax_rate=0,
-                    service_charge=0.15,
-                    amount_paid=862.50,
-                    items=[
-                        Item(
-                            name="Coffee",
-                            price=300,
-                            quantity=1,
-                            consumed_by=["alice", "charlie"],
-                        ),
-                        Item(
-                            name="Cake",
-                            price=450,
-                            quantity=1,
-                            consumed_by=["alice", "bob", "charlie"],
-                        ),
-                    ],
-                ),
-            ]
-        )
-
-        balance = calculate_balance(outing)
-
-        assert len(balance.creditors) == 2
-        assert balance.creditors[0].name == "bob"
-        assert round(balance.creditors[0].amount, 2) == 360.00
-        assert balance.creditors[1].name == "alice"
-        assert round(balance.creditors[1].amount, 2) == 315.00
-
-        assert len(balance.debtors) == 1
-        assert balance.debtors[0].name == "charlie"
-        assert round(balance.debtors[0].amount, 2) == 675.00
-
-    def test_simple_bill_split_with_tax_and_service_charge__discounted_amount_paid(self):
-        # Same bill as first test, but with a discount applied to amount_paid
-        outing = Outing(
-            bills=[
-                Bill(
-                    paid_by="bob",
-                    tax_rate=0.05,
-                    service_charge=0.1,
-                    amount_paid=1000.00,  # discounted from 1207.50
-                    items=[
-                        Item(
-                            name="Pizza",
-                            price=600,
-                            quantity=1,
-                            consumed_by=["alice", "bob", "charlie"],
-                        ),
-                        Item(
-                            name="Coke",
-                            price=150,
-                            quantity=1,
-                            consumed_by=["alice", "bob"],
-                        ),
-                        Item(
-                            name="Ice Cream",
-                            price=300,
-                            quantity=1,
-                            consumed_by=["charlie"],
-                        ),
-                    ],
-                )
-            ]
-        )
-
-        balance = calculate_balance(outing)
-
-        assert len(balance.creditors) == 1
-        assert balance.creditors[0].name == "bob"
-        assert balance.creditors[0].amount == 738.10
-
-        assert len(balance.debtors) == 2
-        assert balance.debtors[0].name == "charlie"
-        assert balance.debtors[0].amount == 476.19
-        assert balance.debtors[1].name == "alice"
-        assert balance.debtors[1].amount == 261.90
-
-    def test_multiple_bills_with_different_service_charges_and_no_tax__discounted_amount_paid(self):
-        outing = Outing(
-            bills=[
-                Bill(
-                    paid_by="alice",
-                    tax_rate=0,
-                    service_charge=0.1,
-                    amount_paid=800,  # discounted from 990
-                    items=[
-                        Item(
-                            name="Pizza",
-                            price=900,
-                            quantity=1,
-                            consumed_by=["alice", "bob", "charlie"],
-                        ),
-                    ],
-                ),
-                Bill(
-                    paid_by="bob",
-                    tax_rate=0,
-                    service_charge=0.15,
-                    amount_paid=700.00,  # discounted from 862.50
-                    items=[
-                        Item(
-                            name="Coffee",
-                            price=300,
-                            quantity=1,
-                            consumed_by=["alice", "charlie"],
-                        ),
-                        Item(
-                            name="Cake",
-                            price=450,
-                            quantity=1,
-                            consumed_by=["alice", "bob", "charlie"],
-                        ),
-                    ],
-                ),
-            ]
-        )
-
-        balance = calculate_balance(outing)
-
-        assert len(balance.creditors) == 2
-
-        assert balance.creditors[0].name == "bob"
-        assert balance.creditors[0].amount == 293.33
-        assert balance.creditors[1].name == "alice"
-        assert balance.creditors[1].amount == 253.33
-
-        assert len(balance.debtors) == 1
-        assert balance.debtors[0].name == "charlie"
-        assert balance.debtors[0].amount == 546.67
+    @pytest.mark.parametrize(
+        "outing, balance",
+        [
+            (
+                examples.simple_with_tax_and_service_charge.OUTING,
+                examples.simple_with_tax_and_service_charge.OUTING_PAYMENT_BALANCE,
+            ),
+            (
+                examples.multiple_bills.OUTING,
+                examples.multiple_bills.OUTING_PAYMENT_BALANCE,
+            ),
+            (
+                examples.simple_bill_discounted.OUTING,
+                examples.simple_bill_discounted.OUTING_PAYMENT_BALANCE,
+            ),
+            (
+                examples.multiple_bills_discounted.OUTING,
+                examples.multiple_bills_discounted.OUTING_PAYMENT_BALANCE,
+            ),
+        ],
+    )
+    def test_examples(self, outing: Outing, balance: OutingPaymentBalance):
+        assert calculate_balance(outing) == balance
 
 
 class TestCalculateOutingSplitWithMinimalTransactions:
-    def test_simple_bill_split_with_tax_and_service_charge(self):
-        balance = examples.simple_with_tax_and_service_charge.OUTING_PAYMENT_BALANCE
-        split = calculate_outing_split_with_minimal_transactions(balance)
-        assert split == examples.simple_with_tax_and_service_charge.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS
-
-    def test_multiple_bills_with_different_service_charges_and_no_tax(self):
-        balance = OutingPaymentBalance(
-            creditors=[
-                PersonBalance(name="bob", amount=360),
-                PersonBalance(name="alice", amount=315),
-            ],
-            debtors=[
-                PersonBalance(name="charlie", amount=675),
-            ],
-        )
-
-        split = calculate_outing_split_with_minimal_transactions(balance)
-
-        assert len(split.payment_plans) == 1
-        payment_plan = split.payment_plans[0]
-        assert payment_plan.name == "charlie"
-        assert len(payment_plan.payments) == 2
-        for payment in payment_plan.payments:
-            assert payment.to in ["bob", "alice"]
-            if payment.to == "bob":
-                assert round(payment.amount, 2) == 360.00
-            elif payment.to == "alice":
-                assert round(payment.amount, 2) == 315.00
+    @pytest.mark.parametrize(
+        "balance, split",
+        [
+            (
+                examples.simple_with_tax_and_service_charge.OUTING_PAYMENT_BALANCE,
+                examples.simple_with_tax_and_service_charge.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
+            ),
+            (
+                examples.multiple_bills.OUTING_PAYMENT_BALANCE,
+                examples.multiple_bills.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
+            ),
+            (
+                examples.simple_bill_discounted.OUTING_PAYMENT_BALANCE,
+                examples.simple_bill_discounted.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
+            ),
+            (
+                examples.multiple_bills_discounted.OUTING_PAYMENT_BALANCE,
+                examples.multiple_bills_discounted.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
+            ),
+        ],
+    )
+    def test_examples(self, balance: OutingPaymentBalance, split: OutingSplit):
+        assert calculate_outing_split_with_minimal_transactions(balance) == split
 
 
 class TestGetBillDetailsFromImage:
