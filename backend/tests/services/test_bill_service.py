@@ -285,14 +285,18 @@ class TestGetBillDetailsFromImage:
     success_bill = OCRBill.model_validate_json(llm_success_response_text)
 
     @pytest.fixture
-    def mock_gemini_service_method(self, monkeypatch: pytest.MonkeyPatch):
-        def mock_generate_content_from_image(prompt: str, image_bytes: bytes, mime_type: str) -> str:
-            return self.llm_success_response_text
+    def _mock_gemini_service_method(self, monkeypatch: pytest.MonkeyPatch):
+        outer_self = self
+
+        class MockLLMService:
+            def get_bill_details_from_image(self, image_bytes: bytes, mime_type: str) -> str:
+                # mirror the original behavior by returning the same JSON text
+                return outer_self.llm_success_response_text
 
         monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", "fake-api-key")
-        monkeypatch.setattr("app.services.bill.generate_content_from_image", mock_generate_content_from_image)
+        monkeypatch.setattr("app.services.bill.gemini", MockLLMService())
 
-    def test_gemini(self, mock_gemini_service_method):
+    def test_gemini(self, _mock_gemini_service_method):
         ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
         assert ocr_bill == self.success_bill
 
