@@ -12,8 +12,8 @@ class TestSplit:
         "outing, split",
         [
             (
-                examples.simple_with_tax_and_service_charge.OUTING,
-                examples.simple_with_tax_and_service_charge.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
+                examples.simple_bill.OUTING,
+                examples.simple_bill.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
             ),
             (
                 examples.multiple_bills.OUTING,
@@ -703,7 +703,7 @@ class TestSplit:
 
 
 class TestExtractBillDetailsFromImage:
-    success_bill = examples.simple_with_tax_and_service_charge.OCR_BILL
+    success_bill = examples.simple_bill.OCR_BILL
 
     @pytest.fixture
     def _mock_bill_service_method(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:

@@ -15,8 +15,8 @@ class TestCalculateBalance:
         "outing, balance",
         [
             (
-                examples.simple_with_tax_and_service_charge.OUTING,
-                examples.simple_with_tax_and_service_charge.OUTING_PAYMENT_BALANCE,
+                examples.simple_bill.OUTING,
+                examples.simple_bill.OUTING_PAYMENT_BALANCE,
             ),
             (
                 examples.multiple_bills.OUTING,
@@ -41,8 +41,8 @@ class TestCalculateOutingSplitWithMinimalTransactions:
         "balance, split",
         [
             (
-                examples.simple_with_tax_and_service_charge.OUTING_PAYMENT_BALANCE,
-                examples.simple_with_tax_and_service_charge.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
+                examples.simple_bill.OUTING_PAYMENT_BALANCE,
+                examples.simple_bill.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
             ),
             (
                 examples.multiple_bills.OUTING_PAYMENT_BALANCE,
@@ -63,7 +63,7 @@ class TestCalculateOutingSplitWithMinimalTransactions:
 
 
 class TestGetBillDetailsFromImage:
-    success_bill = examples.simple_with_tax_and_service_charge.OCR_BILL
+    success_bill = examples.simple_bill.OCR_BILL
     llm_success_response_text = success_bill.model_dump_json()
 
     @pytest.fixture
