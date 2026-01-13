@@ -855,7 +855,7 @@ class TestExtractBillDetailsFromImage:
     success_bill = examples.simple_with_tax_and_service_charge.OCR_BILL
 
     @pytest.fixture
-    def mock_bill_service_method(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    def _mock_bill_service_method(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         def mock_get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
             return self.success_bill
 
@@ -863,26 +863,38 @@ class TestExtractBillDetailsFromImage:
         monkeypatch.setattr("app.api.v1.endpoints.bill.get_bill_details_from_image", mock_get_bill_details_from_image)
         yield None
 
-    def test_valid_image_file(self, test_client, mock_bill_service_method: None):
+    def test_valid_image_file(self, test_client, _mock_bill_service_method: None):
         files = {"file": ("test_image.png", b"dummy image content", "image/png")}
         response = test_client.post("/api/v1/bills/ocr", files=files)
         assert response.status_code == 200
         ocr_response = response.text
         assert OCRBill.model_validate_json(ocr_response) == self.success_bill
 
-    def test_invalid_file_type(self, test_client: TestClient):
-        files = {"file": ("test.txt", b"dummy content", "text/plain")}
+    @pytest.mark.parametrize(
+        "files, status_code, error_response",
+        [
+            # Missing file
+            (
+                {},
+                422,
+                {"detail": [{"type": "missing", "loc": ["body", "file"], "msg": "Field required", "input": None}]},
+            ),
+            # Missing file
+            (
+                None,
+                422,
+                {"detail": [{"type": "missing", "loc": ["body", "file"], "msg": "Field required", "input": None}]},
+            ),
+            # Invalid file type
+            (
+                {"file": ("test.txt", b"dummy content", "text/plain")},
+                400,
+                {"detail": "Invalid file type. Please upload an image file."},
+            ),
+        ],
+    )
+    def test_input_validation_failure(self, test_client, files: dict | None, status_code: int, error_response: dict):
         response = test_client.post("/api/v1/bills/ocr", files=files)
-        assert response.status_code == 400
-        error_response = response.json()
-        assert "detail" in error_response
-        assert error_response["detail"] == "Invalid file type. Please upload an image file."
-        assert error_response == {"detail": "Invalid file type. Please upload an image file."}
-
-    def test_no_file(self, test_client: TestClient):
-        response = test_client.post("/api/v1/bills/ocr", files={})
-        assert response.status_code == 422
-        error_response = response.json()
-        assert error_response == {
-            "detail": [{"type": "missing", "loc": ["body", "file"], "msg": "Field required", "input": None}]
-        }
+        assert response.status_code == status_code
+        print(response.json())
+        assert response.json() == error_response
