@@ -4,12 +4,7 @@ from typing import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.settings import settings
-
-# from app.main import app
-from app.main import app
 from app.schemas.bill import OCRBill
-from app.services import bill
 
 
 def test_split__simple_bill_split_with_tax_and_service_charge(test_client):
@@ -983,9 +978,9 @@ class TestExtractBillDetailsFromImage:
         print("monkey patched get_bill_details_from_image method")
         yield "monkey patched get_bill_details_from_image method"
 
-    def test_valid_image_file(self, mock_bill_service_method: str):
+    def test_valid_image_file(self, test_client, mock_bill_service_method: str):
         files = {"file": ("test_image.png", b"dummy image content", "image/png")}
-        response = TestClient(app).post("/api/v1/bills/ocr", files=files)
+        response = test_client.post("/api/v1/bills/ocr", files=files)
         assert response.status_code == 200
 
         ocr_response = response.json()
