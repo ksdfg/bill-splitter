@@ -4,32 +4,61 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.schemas.bill import OCRBill, Outing, OutingSplit
+from app.services.bill import OutingPaymentBalance
 from tests import examples
 
 
 class TestSplit:
+    def mock_calculate_balance(self, monkeypatch: pytest.MonkeyPatch, mock_balance: OutingPaymentBalance):
+        def mock(_: Outing):
+            return mock_balance
+
+        monkeypatch.setattr("app.api.v1.endpoints.bill.calculate_balance", mock)
+
+    def mock_calculate_outing_split_with_minimal_transactions(
+        self, monkeypatch: pytest.MonkeyPatch, mock_split: OutingSplit
+    ):
+        def mock(_: OutingPaymentBalance):
+            return mock_split
+
+        monkeypatch.setattr("app.api.v1.endpoints.bill.calculate_outing_split_with_minimal_transactions", mock)
+
     @pytest.mark.parametrize(
-        "outing, split",
+        "outing, balance, split",
         [
             (
                 examples.simple_bill.OUTING,
+                examples.simple_bill.OUTING_PAYMENT_BALANCE,
                 examples.simple_bill.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
             ),
             (
                 examples.multiple_bills.OUTING,
+                examples.multiple_bills.OUTING_PAYMENT_BALANCE,
                 examples.multiple_bills.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
             ),
             (
                 examples.simple_bill_discounted.OUTING,
+                examples.simple_bill_discounted.OUTING_PAYMENT_BALANCE,
                 examples.simple_bill_discounted.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
             ),
             (
                 examples.multiple_bills_discounted.OUTING,
+                examples.multiple_bills_discounted.OUTING_PAYMENT_BALANCE,
                 examples.multiple_bills_discounted.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS,
             ),
         ],
     )
-    def test_examples(self, test_client: TestClient, outing: Outing, split: OutingSplit):
+    def test_examples(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        test_client: TestClient,
+        outing: Outing,
+        balance: OutingPaymentBalance,
+        split: OutingSplit,
+    ):
+        self.mock_calculate_balance(monkeypatch, balance)
+        self.mock_calculate_outing_split_with_minimal_transactions(monkeypatch, split)
+
         response = test_client.post("/api/v1/bills/split", json=outing.model_dump())
         assert response.status_code == 200
         assert response.json() == split.model_dump()
