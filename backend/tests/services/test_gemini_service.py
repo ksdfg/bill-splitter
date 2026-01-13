@@ -4,7 +4,7 @@ from typing import Any, Iterator, Optional
 
 import pytest
 
-from app.services.gemini import generate_content_from_image
+from app.services.gemini import get_bill_details_from_image
 
 
 @dataclass
@@ -60,11 +60,11 @@ def mock_gemini_client(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureR
 
     client_instance = MockGeminiClient(mock_llm_response)
     # Patch the Client constructor used in the module under test to always return our instance
-    monkeypatch.setattr("google.genai.Client", lambda api_key, inst=client_instance: inst)
+    monkeypatch.setattr("app.services.gemini.Client", lambda api_key, inst=client_instance: inst)
     yield client_instance
 
 
-class TestGenerateContentFromImage:
+class TestGetBillDetailsFromImage:
     llm_success_response_text = dumps(
         {
             "tax_rate": 0.05,
@@ -101,9 +101,7 @@ class TestGenerateContentFromImage:
         )
     )
     def test_success(self, mock_gemini_client: MockGeminiClient):
-        ocr_bill = generate_content_from_image(
-            prompt="parse this", image_bytes=b"fake-image-bytes", mime_type="image/png"
-        )
+        ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
 
         # Verify the model used is the expected model
         last_call = mock_gemini_client.models.last_call
@@ -115,7 +113,7 @@ class TestGenerateContentFromImage:
     @pytest.mark.mock_llm_response(GeminiResponse(candidates=[]))
     def test_no_candidates(self, mock_gemini_client: MockGeminiClient):
         with pytest.raises(ValueError) as exc:
-            generate_content_from_image(prompt="parse", image_bytes=b"fake", mime_type="image/png")
+            get_bill_details_from_image(image_bytes=b"fake", mime_type="image/png")
 
         assert "No response from Gemini API" in str(exc.value)
 
@@ -129,7 +127,7 @@ class TestGenerateContentFromImage:
     )
     def test_no_parts(self, mock_gemini_client: MockGeminiClient):
         with pytest.raises(ValueError) as exc:
-            generate_content_from_image(prompt="parse", image_bytes=b"fake", mime_type="image/png")
+            get_bill_details_from_image(image_bytes=b"fake", mime_type="image/png")
 
         assert "No content parts in Gemini API response" in str(exc.value)
 
@@ -147,7 +145,7 @@ class TestGenerateContentFromImage:
     )
     def test_no_text(self, mock_gemini_client: MockGeminiClient):
         with pytest.raises(ValueError) as exc:
-            generate_content_from_image(prompt="parse", image_bytes=b"fake", mime_type="image/png")
+            get_bill_details_from_image(image_bytes=b"fake", mime_type="image/png")
 
         assert "No text content in Gemini API response" in str(exc.value)
 
