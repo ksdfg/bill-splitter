@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from json import dumps
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 import pytest
 
 from app.services.gemini import get_bill_details_from_image
+from tests import examples
 
 
 @dataclass
@@ -48,108 +48,69 @@ class MockGeminiClient:
         self.models = self.MockModels(response)
 
 
-@pytest.fixture
-def mock_gemini_client(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> Iterator[MockGeminiClient]:
+def mock_gemini_client(monkeypatch: pytest.MonkeyPatch, response: Optional[GeminiResponse] = None) -> MockGeminiClient:
     """
     Create a MockClient with `response`, patch `gemini_module.genai.Client` to
     return that instance, and return the instance for optional inspection.
     """
-    #
-    marker = request.node.get_closest_marker("mock_llm_response")
-    mock_llm_response = marker.args[0] if marker else GeminiResponse()
-
-    client_instance = MockGeminiClient(mock_llm_response)
-    # Patch the Client constructor used in the module under test to always return our instance
+    client_instance = MockGeminiClient(response)
     monkeypatch.setattr("app.services.gemini.Client", lambda api_key, inst=client_instance: inst)
-    yield client_instance
+    return client_instance
 
 
 class TestGetBillDetailsFromImage:
-    llm_success_response_text = dumps(
-        {
-            "tax_rate": 0.05,
-            "service_charge": 0.1,
-            "amount_paid": 1207.50,
-            "items": [
-                {
-                    "name": "Pizza",
-                    "price": 600.0,
-                    "quantity": 1,
-                },
-                {
-                    "name": "Coke",
-                    "price": 150.0,
-                    "quantity": 1,
-                },
-                {
-                    "name": "Ice Cream",
-                    "price": 300.0,
-                    "quantity": 1,
-                },
-            ],
-        },
-        sort_keys=True,
-    )
+    def test_success(self, monkeypatch: pytest.MonkeyPatch):
+        llm_success_response_text = examples.simple_bill.OCR_BILL.model_dump_json()
 
-    @pytest.mark.mock_llm_response(
-        GeminiResponse(
+        # Mock the Gemini client
+        mock_response = GeminiResponse(
             candidates=[
                 GeminiResponse.Candidate(
                     content=GeminiResponse.Content(parts=[GeminiResponse.Part(text=llm_success_response_text)])
                 )
             ]
         )
-    )
-    def test_success(self, mock_gemini_client: MockGeminiClient):
+        mock_client = mock_gemini_client(monkeypatch, mock_response)
+
         ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
 
         # Verify the model used is the expected model
-        last_call = mock_gemini_client.models.last_call
+        last_call = mock_client.models.last_call
         assert last_call is not None, "expected generate_content to be called"
         assert last_call["model"] == "gemini-2.5-flash"
 
-        assert ocr_bill == self.llm_success_response_text
+        assert ocr_bill == llm_success_response_text
 
-    @pytest.mark.mock_llm_response(GeminiResponse(candidates=[]))
-    def test_no_candidates(self, mock_gemini_client: MockGeminiClient):
-        with pytest.raises(ValueError) as exc:
-            get_bill_details_from_image(image_bytes=b"fake", mime_type="image/png")
-
-        assert "No response from Gemini API" in str(exc.value)
-
-        # Verify the model used is the expected model
-        last_call = mock_gemini_client.models.last_call
-        assert last_call is not None, "expected generate_content to be called"
-        assert last_call["model"] == "gemini-2.5-flash"
-
-    @pytest.mark.mock_llm_response(
-        GeminiResponse(candidates=[GeminiResponse.Candidate(content=GeminiResponse.Content(parts=[]))])
+    @pytest.mark.parametrize(
+        "mock_response, error_message",
+        [
+            (GeminiResponse(candidates=[]), "No response from Gemini API"),
+            (
+                GeminiResponse(candidates=[GeminiResponse.Candidate(content=GeminiResponse.Content(parts=[]))]),
+                "No content parts in Gemini API response",
+            ),
+            (
+                GeminiResponse(
+                    candidates=[
+                        GeminiResponse.Candidate(content=GeminiResponse.Content(parts=[GeminiResponse.Part(text=None)]))
+                    ]
+                ),
+                "No text content in Gemini API response",
+            ),
+        ],
     )
-    def test_no_parts(self, mock_gemini_client: MockGeminiClient):
+    def test_errors_in_gemini_response(
+        self, monkeypatch: pytest.MonkeyPatch, mock_response: GeminiResponse, error_message: str
+    ):
+        # Mock the Gemini client to return an error response
+        mock_client = mock_gemini_client(monkeypatch, mock_response)
+
         with pytest.raises(ValueError) as exc:
             get_bill_details_from_image(image_bytes=b"fake", mime_type="image/png")
 
-        assert "No content parts in Gemini API response" in str(exc.value)
+        assert str(exc.value) == error_message
 
         # Verify the model used is the expected model
-        last_call = mock_gemini_client.models.last_call
-        assert last_call is not None, "expected generate_content to be called"
-        assert last_call["model"] == "gemini-2.5-flash"
-
-    @pytest.mark.mock_llm_response(
-        GeminiResponse(
-            candidates=[
-                GeminiResponse.Candidate(content=GeminiResponse.Content(parts=[GeminiResponse.Part(text=None)]))
-            ]
-        )
-    )
-    def test_no_text(self, mock_gemini_client: MockGeminiClient):
-        with pytest.raises(ValueError) as exc:
-            get_bill_details_from_image(image_bytes=b"fake", mime_type="image/png")
-
-        assert "No text content in Gemini API response" in str(exc.value)
-
-        # Verify the model used is the expected model
-        last_call = mock_gemini_client.models.last_call
+        last_call = mock_client.models.last_call
         assert last_call is not None, "expected generate_content to be called"
         assert last_call["model"] == "gemini-2.5-flash"
