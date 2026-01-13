@@ -183,596 +183,672 @@ class TestSplit:
             elif payment["to"] == "bob":
                 assert round(payment["amount"], 2) == 293.33
 
-    def test_outing_with_empty_bills_list(self, test_client: TestClient):
-        outing_data = {"bills": []}
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "too_short"
-        assert error["loc"] == ["body", "bills"]
-        assert error["msg"] == "List should have at least 1 item after validation, not 0"
-        assert error["input"] == []
-        assert error["ctx"]["field_type"] == "List"
-        assert error["ctx"]["min_length"] == 1
-        assert error["ctx"]["actual_length"] == 0
-
-    def test_bill_with_empty_items_list(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+    @pytest.mark.parametrize(
+        "outing_data, error_response",
+        [
+            # Missing bills field
+            ({}, {"detail": [{"type": "missing", "loc": ["body", "bills"], "msg": "Field required", "input": {}}]}),
+            # Empty bills list
+            (
+                {"bills": []},
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "too_short"
-        assert error["loc"] == ["body", "bills", 0, "items"]
-        assert error["msg"] == "List should have at least 1 item after validation, not 0"
-        assert error["input"] == []
-        assert error["ctx"]["field_type"] == "List"
-        assert error["ctx"]["min_length"] == 1
-        assert error["ctx"]["actual_length"] == 0
-
-    def test_item_with_empty_name(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
-                {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "too_short",
+                            "loc": ["body", "bills"],
+                            "msg": "List should have at least 1 item after validation, not 0",
+                            "input": [],
+                            "ctx": {"field_type": "List", "min_length": 1, "actual_length": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "string_too_short"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "name"]
-        assert error["msg"] == "String should have at least 1 character"
-        assert error["input"] == ""
-        assert error["ctx"]["min_length"] == 1
-
-    def test_item_with_zero_price(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Empty items list
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 0,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "greater_than"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "price"]
-        assert error["msg"] == "Input should be greater than 0"
-        assert error["input"] == 0
-        assert error["ctx"]["gt"] == 0
-
-    def test_item_with_negative_price(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": -100,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "too_short",
+                            "loc": ["body", "bills", 0, "items"],
+                            "msg": "List should have at least 1 item after validation, not 0",
+                            "input": [],
+                            "ctx": {"field_type": "List", "min_length": 1, "actual_length": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "greater_than"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "price"]
-        assert error["msg"] == "Input should be greater than 0"
-        assert error["input"] == -100
-        assert error["ctx"]["gt"] == 0
-
-    def test_item_with_zero_quantity(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Empty item name
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 0,
-                            "consumed_by": ["alice", "bob"],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "greater_than"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "quantity"]
-        assert error["msg"] == "Input should be greater than 0"
-        assert error["input"] == 0
-        assert error["ctx"]["gt"] == 0
-
-    def test_item_with_negative_quantity(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": -5,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "string_too_short",
+                            "loc": ["body", "bills", 0, "items", 0, "name"],
+                            "msg": "String should have at least 1 character",
+                            "input": "",
+                            "ctx": {"min_length": 1},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "greater_than"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "quantity"]
-        assert error["msg"] == "Input should be greater than 0"
-        assert error["input"] == -5
-        assert error["ctx"]["gt"] == 0
-
-    def test_item_with_empty_consumed_by(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Zero price
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": [],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 0,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "too_short"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "consumed_by"]
-        assert error["msg"] == "List should have at least 1 item after validation, not 0"
-        assert error["input"] == []
-        assert error["ctx"]["field_type"] == "List"
-        assert error["ctx"]["min_length"] == 1
-        assert error["ctx"]["actual_length"] == 0
-
-    def test_bill_with_empty_paid_by(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "greater_than",
+                            "loc": ["body", "bills", 0, "items", 0, "price"],
+                            "msg": "Input should be greater than 0",
+                            "input": 0,
+                            "ctx": {"gt": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "string_too_short"
-        assert error["loc"] == ["body", "bills", 0, "paid_by"]
-        assert error["msg"] == "String should have at least 1 character"
-        assert error["input"] == ""
-        assert error["ctx"]["min_length"] == 1
-
-    def test_bill_with_negative_tax_rate(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Negative price
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": -0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": -100,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "greater_than_equal"
-        assert error["loc"] == ["body", "bills", 0, "tax_rate"]
-        assert error["msg"] == "Input should be greater than or equal to 0"
-        assert error["input"] == -0.05
-        assert error["ctx"]["ge"] == 0
-
-    def test_bill_with_tax_rate_greater_than_one(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 1.5,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "greater_than",
+                            "loc": ["body", "bills", 0, "items", 0, "price"],
+                            "msg": "Input should be greater than 0",
+                            "input": -100,
+                            "ctx": {"gt": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "less_than_equal"
-        assert error["loc"] == ["body", "bills", 0, "tax_rate"]
-        assert error["msg"] == "Input should be less than or equal to 1"
-        assert error["input"] == 1.5
-        assert error["ctx"]["le"] == 1
-
-    def test_bill_with_negative_service_charge(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Zero quantity
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": -0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 0,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "greater_than_equal"
-        assert error["loc"] == ["body", "bills", 0, "service_charge"]
-        assert error["msg"] == "Input should be greater than or equal to 0"
-        assert error["input"] == -0.1
-        assert error["ctx"]["ge"] == 0
-
-    def test_bill_with_service_charge_greater_than_one(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 1.5,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "greater_than",
+                            "loc": ["body", "bills", 0, "items", 0, "quantity"],
+                            "msg": "Input should be greater than 0",
+                            "input": 0,
+                            "ctx": {"gt": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "less_than_equal"
-        assert error["loc"] == ["body", "bills", 0, "service_charge"]
-        assert error["msg"] == "Input should be less than or equal to 1"
-        assert error["input"] == 1.5
-        assert error["ctx"]["le"] == 1
-
-    def test_missing_required_field_bills(self, test_client: TestClient):
-        outing_data = {}
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills"]
-        assert error["msg"] == "Field required"
-        assert error["input"] == {}
-
-    def test_missing_required_field_paid_by(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Negative quantity
+            (
                 {
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": -5,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "paid_by"]
-        assert error["msg"] == "Field required"
-
-    def test_missing_required_field_items(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "items"]
-        assert error["msg"] == "Field required"
-
-    def test_missing_required_field_name(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
-                {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "greater_than",
+                            "loc": ["body", "bills", 0, "items", 0, "quantity"],
+                            "msg": "Input should be greater than 0",
+                            "input": -5,
+                            "ctx": {"gt": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "name"]
-        assert error["msg"] == "Field required"
-
-    def test_missing_required_field_price(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Empty consumed_by
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": [],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "price"]
-        assert error["msg"] == "Field required"
-
-    def test_missing_required_field_quantity(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "too_short",
+                            "loc": ["body", "bills", 0, "items", 0, "consumed_by"],
+                            "msg": "List should have at least 1 item after validation, not 0",
+                            "input": [],
+                            "ctx": {"field_type": "List", "min_length": 1, "actual_length": 0},
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "quantity"]
-        assert error["msg"] == "Field required"
-
-    def test_missing_required_field_consumed_by(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
+            ),
+            # Empty paid_by
+            (
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1,
-                    "items": [
+                    "bills": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
+                            "paid_by": "",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
                         }
-                    ],
-                }
-            ]
-        }
-        response = test_client.post("/api/v1/bills/split", json=outing_data)
-        assert response.status_code == 422
-        error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "items", 0, "consumed_by"]
-        assert error["msg"] == "Field required"
-
-    def test_missing_required_field_amount_paid(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
+                    ]
+                },
                 {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "items": [
+                    "detail": [
                         {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
+                            "type": "string_too_short",
+                            "loc": ["body", "bills", 0, "paid_by"],
+                            "msg": "String should have at least 1 character",
+                            "input": "",
+                            "ctx": {"min_length": 1},
                         }
-                    ],
-                }
-            ]
-        }
-
+                    ]
+                },
+            ),
+            # Negative tax rate
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": -0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "greater_than_equal",
+                            "loc": ["body", "bills", 0, "tax_rate"],
+                            "msg": "Input should be greater than or equal to 0",
+                            "input": -0.05,
+                            "ctx": {"ge": 0},
+                        }
+                    ]
+                },
+            ),
+            # Tax rate greater than one
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 1.5,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "less_than_equal",
+                            "loc": ["body", "bills", 0, "tax_rate"],
+                            "msg": "Input should be less than or equal to 1",
+                            "input": 1.5,
+                            "ctx": {"le": 1},
+                        }
+                    ]
+                },
+            ),
+            # Negative service charge
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": -0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "greater_than_equal",
+                            "loc": ["body", "bills", 0, "service_charge"],
+                            "msg": "Input should be greater than or equal to 0",
+                            "input": -0.1,
+                            "ctx": {"ge": 0},
+                        }
+                    ]
+                },
+            ),
+            # Service charge greater than one
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 1.5,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "less_than_equal",
+                            "loc": ["body", "bills", 0, "service_charge"],
+                            "msg": "Input should be less than or equal to 1",
+                            "input": 1.5,
+                            "ctx": {"le": 1},
+                        }
+                    ]
+                },
+            ),
+            # Missing bills field
+            (
+                {},
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills"],
+                            "msg": "Field required",
+                            "input": {},
+                        }
+                    ]
+                },
+            ),
+            # Missing paid_by field
+            (
+                {
+                    "bills": [
+                        {
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "paid_by"],
+                            "msg": "Field required",
+                            "input": {
+                                "tax_rate": 0.05,
+                                "service_charge": 0.1,
+                                "amount_paid": 1,
+                                "items": [
+                                    {
+                                        "name": "Pizza",
+                                        "price": 600,
+                                        "quantity": 1,
+                                        "consumed_by": ["alice", "bob"],
+                                    }
+                                ],
+                            },
+                        }
+                    ]
+                },
+            ),
+            # Missing items field
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "items"],
+                            "msg": "Field required",
+                            "input": {
+                                "paid_by": "bob",
+                                "tax_rate": 0.05,
+                                "service_charge": 0.1,
+                                "amount_paid": 1,
+                            },
+                        }
+                    ]
+                },
+            ),
+            # Missing name field
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "items", 0, "name"],
+                            "msg": "Field required",
+                            "input": {
+                                "price": 600,
+                                "quantity": 1,
+                                "consumed_by": ["alice", "bob"],
+                            },
+                        }
+                    ]
+                },
+            ),
+            # Missing price field
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "items", 0, "price"],
+                            "msg": "Field required",
+                            "input": {
+                                "name": "Pizza",
+                                "quantity": 1,
+                                "consumed_by": ["alice", "bob"],
+                            },
+                        }
+                    ]
+                },
+            ),
+            # Missing quantity field
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "items", 0, "quantity"],
+                            "msg": "Field required",
+                            "input": {
+                                "name": "Pizza",
+                                "price": 600,
+                                "consumed_by": ["alice", "bob"],
+                            },
+                        }
+                    ]
+                },
+            ),
+            # Missing consumed_by field
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "amount_paid": 1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "items", 0, "consumed_by"],
+                            "msg": "Field required",
+                            "input": {
+                                "name": "Pizza",
+                                "price": 600,
+                                "quantity": 1,
+                            },
+                        }
+                    ]
+                },
+            ),
+            # Missing amount_paid field
+            (
+                {
+                    "bills": [
+                        {
+                            "paid_by": "bob",
+                            "tax_rate": 0.05,
+                            "service_charge": 0.1,
+                            "items": [
+                                {
+                                    "name": "Pizza",
+                                    "price": 600,
+                                    "quantity": 1,
+                                    "consumed_by": ["alice", "bob"],
+                                }
+                            ],
+                        }
+                    ]
+                },
+                {
+                    "detail": [
+                        {
+                            "type": "missing",
+                            "loc": ["body", "bills", 0, "amount_paid"],
+                            "msg": "Field required",
+                            "input": {
+                                "paid_by": "bob",
+                                "tax_rate": 0.05,
+                                "service_charge": 0.1,
+                                "items": [
+                                    {
+                                        "name": "Pizza",
+                                        "price": 600,
+                                        "quantity": 1,
+                                        "consumed_by": ["alice", "bob"],
+                                    }
+                                ],
+                            },
+                        }
+                    ]
+                },
+            ),
+        ],
+    )
+    def test_input_validation_failure(self, test_client, outing_data: dict, error_response: dict):
         response = test_client.post("/api/v1/bills/split", json=outing_data)
         assert response.status_code == 422
-
-        error_response = response.json()
-
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "bills", 0, "amount_paid"]
-        assert error["msg"] == "Field required"
+        print(response.json())
+        assert response.json() == error_response
 
 
 class TestExtractBillDetailsFromImage:
