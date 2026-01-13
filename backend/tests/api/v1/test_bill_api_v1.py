@@ -1,62 +1,21 @@
-from json import dumps
 from typing import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.schemas.bill import OCRBill
+from app.schemas.bill import OCRBill, OutingSplit
+from tests import examples
 
 
 class TestSplit:
     def test_simple_bill_split_with_tax_and_service_charge(self, test_client: TestClient):
-        outing_data = {
-            "bills": [
-                {
-                    "paid_by": "bob",
-                    "tax_rate": 0.05,
-                    "service_charge": 0.1,
-                    "amount_paid": 1207.50,
-                    "items": [
-                        {
-                            "name": "Pizza",
-                            "price": 600,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob", "charlie"],
-                        },
-                        {
-                            "name": "Coke",
-                            "price": 150,
-                            "quantity": 1,
-                            "consumed_by": ["alice", "bob"],
-                        },
-                        {
-                            "name": "Ice Cream",
-                            "price": 300,
-                            "quantity": 1,
-                            "consumed_by": ["charlie"],
-                        },
-                    ],
-                }
-            ]
-        }
+        outing_data = examples.simple_with_tax_and_service_charge.OUTING.model_dump()
         response = test_client.post("/api/v1/bills/split", json=outing_data)
         assert response.status_code == 200
-        outing_split = response.json()
-        assert "payment_plans" in outing_split
-        payment_plans = outing_split["payment_plans"]
-        assert len(payment_plans) == 2
-        for payment_plan in payment_plans:
-            assert "name" in payment_plan
-            assert payment_plan["name"] in ["alice", "charlie"]
-            assert "payments" in payment_plan
-            if payment_plan["name"] == "alice":
-                assert len(payment_plan["payments"]) == 1
-                assert payment_plan["payments"][0]["to"] == "bob"
-                assert round(payment_plan["payments"][0]["amount"], 2) == 316.25
-            elif payment_plan["name"] == "charlie":
-                assert len(payment_plan["payments"]) == 1
-                assert payment_plan["payments"][0]["to"] == "bob"
-                assert round(payment_plan["payments"][0]["amount"], 2) == 575.00
+        assert (
+            OutingSplit.model_validate_json(response.text)
+            == examples.simple_with_tax_and_service_charge.OUTING_SPLIT_WITH_MINIMAL_TRANSACTIONS
+        )
 
     def test_multiple_bills_with_different_service_charges_and_no_tax(self, test_client: TestClient):
         outing_data = {
@@ -817,50 +776,23 @@ class TestSplit:
 
 
 class TestExtractBillDetailsFromImage:
-    response_text = dumps(
-        {
-            "tax_rate": 0.05,
-            "service_charge": 0.1,
-            "amount_paid": 1207.50,
-            "items": [
-                {
-                    "name": "Pizza",
-                    "price": 600.0,
-                    "quantity": 1,
-                },
-                {
-                    "name": "Coke",
-                    "price": 150.0,
-                    "quantity": 1,
-                },
-                {
-                    "name": "Ice Cream",
-                    "price": 300.0,
-                    "quantity": 1,
-                },
-            ],
-        },
-        sort_keys=True,
-    )
-    success_bill = OCRBill.model_validate_json(response_text)
+    success_bill = examples.simple_with_tax_and_service_charge.OCR_BILL
 
     @pytest.fixture
-    def mock_bill_service_method(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+    def mock_bill_service_method(self, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         def mock_get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
-            print("mocking service method")
             return self.success_bill
 
         monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", None)
         monkeypatch.setattr("app.api.v1.endpoints.bill.get_bill_details_from_image", mock_get_bill_details_from_image)
-        print("monkey patched get_bill_details_from_image method")
-        yield "monkey patched get_bill_details_from_image method"
+        yield None
 
-    def test_valid_image_file(self, test_client, mock_bill_service_method: str):
+    def test_valid_image_file(self, test_client, mock_bill_service_method: None):
         files = {"file": ("test_image.png", b"dummy image content", "image/png")}
         response = test_client.post("/api/v1/bills/ocr", files=files)
         assert response.status_code == 200
-        ocr_response = response.json()
-        assert dumps(ocr_response, sort_keys=True) == self.response_text
+        ocr_response = response.text
+        assert OCRBill.model_validate_json(ocr_response) == self.success_bill
 
     def test_invalid_file_type(self, test_client: TestClient):
         files = {"file": ("test.txt", b"dummy content", "text/plain")}
