@@ -801,14 +801,12 @@ class TestExtractBillDetailsFromImage:
         error_response = response.json()
         assert "detail" in error_response
         assert error_response["detail"] == "Invalid file type. Please upload an image file."
+        assert error_response == {"detail": "Invalid file type. Please upload an image file."}
 
-    def test_ocr__no_file(self, test_client: TestClient):
+    def test_no_file(self, test_client: TestClient):
         response = test_client.post("/api/v1/bills/ocr", files={})
         assert response.status_code == 422
         error_response = response.json()
-        assert "detail" in error_response
-        assert len(error_response["detail"]) == 1
-        error = error_response["detail"][0]
-        assert error["type"] == "missing"
-        assert error["loc"] == ["body", "file"]
-        assert error["msg"] == "Field required"
+        assert error_response == {
+            "detail": [{"type": "missing", "loc": ["body", "file"], "msg": "Field required", "input": None}]
+        }
