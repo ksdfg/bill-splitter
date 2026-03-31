@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { X, Upload, Plus } from "lucide-react";
 import ItemForm from "./ItemForm";
 
@@ -24,6 +24,29 @@ const BillModal = ({
   onConsumerKeyDown,
   onRemoveConsumer,
 }) => {
+  useEffect(() => {
+    if (!show || isUploading) return;
+
+    const handlePaste = (e) => {
+      const clipboardItems = e.clipboardData?.items;
+      if (!clipboardItems) return;
+
+      for (let i = 0; i < clipboardItems.length; i++) {
+        if (clipboardItems[i].type.indexOf("image") !== -1) {
+          const file = clipboardItems[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            onUploadReceipt({ target: { files: [file] } });
+            break;
+          }
+        }
+      }
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [show, isUploading, onUploadReceipt]);
+
   return (
     <div
       className={`${show ? "block" : "hidden"} lg:block bg-white dark:bg-stone-900 border-2 border-gray-900 dark:border-gray-200 lg:h-full overflow-y-auto`}
@@ -47,9 +70,9 @@ const BillModal = ({
             <Upload size={18} className="text-gray-700 dark:text-gray-300" strokeWidth={2} />
             <div className="flex-1">
               <p className="text-sm text-gray-900 dark:text-gray-100">
-                {isUploading ? "scanning receipt..." : "upload receipt"}
+                {isUploading ? "scanning receipt..." : "upload or paste receipt"}
               </p>
-              <p className="text-xs text-gray-700 dark:text-gray-400 mt-0.5">auto-fill using OCR</p>
+              <p className="text-xs text-gray-700 dark:text-gray-400 mt-0.5">auto-fill using OCR (ctrl+v)</p>
             </div>
             <input
               type="file"
