@@ -86,7 +86,7 @@ def get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> str:
     else:
         client = Client(api_key=settings.GEMINI_API_KEY)
 
-    model = "gemini-2.5-flash"
+    model = settings.GEMINI_MODEL
     contents = [
         types.Content(
             role="user",
