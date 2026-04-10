@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic.alias_generators import to_camel
 
 
 class OCRBillItem(BaseModel):
@@ -8,6 +9,8 @@ class OCRBillItem(BaseModel):
 
 
 class OCRBill(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     items: list[OCRBillItem]
     tax_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     service_charge: float = Field(default=0.0, ge=0.0, le=1.0)

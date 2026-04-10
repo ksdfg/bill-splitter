@@ -129,7 +129,7 @@ class TestGeminiClientConfiguration:
             GeminiResponse.Candidate(
                 content=GeminiResponse.Content(
                     parts=[
-                        GeminiResponse.Part(text='{"items": [], "amount_paid": 0, "tax_rate": 0, "service_charge": 0}')
+                        GeminiResponse.Part(text='{"items": [], "amountPaid": 0, "taxRate": 0, "serviceCharge": 0}')
                     ]
                 )
             )

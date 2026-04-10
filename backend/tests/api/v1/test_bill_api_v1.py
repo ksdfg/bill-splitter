@@ -747,8 +747,15 @@ class TestExtractBillDetailsFromImage:
         files = {"file": ("test_image.png", b"dummy image content", "image/png")}
         response = test_client.post("/api/v1/bills/ocr", files=files)
         assert response.status_code == 200
-        ocr_response = response.text
-        assert OCRBill.model_validate_json(ocr_response) == self.success_bill
+        ocr_response = response.json()
+        assert OCRBill.model_validate(ocr_response) == self.success_bill
+        # Verify the API returns snake_case keys (not camelCase aliases)
+        assert "tax_rate" in ocr_response
+        assert "service_charge" in ocr_response
+        assert "amount_paid" in ocr_response
+        assert "taxRate" not in ocr_response
+        assert "serviceCharge" not in ocr_response
+        assert "amountPaid" not in ocr_response
 
     @pytest.mark.parametrize(
         "files, status_code, error_response",

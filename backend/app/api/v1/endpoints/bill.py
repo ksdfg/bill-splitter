@@ -10,7 +10,7 @@ from app.services.bill import (
 router = APIRouter()
 
 
-@router.post("/ocr")
+@router.post("/ocr", response_model_by_alias=False)
 async def extract_bill_details_from_image(file: UploadFile) -> OCRBill:
     """
     Extract bill details from an uploaded image file.
