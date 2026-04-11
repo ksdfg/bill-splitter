@@ -9,8 +9,8 @@ authors = [
 ]
 
 dependencies = [
-    "fastapi[all]>=0.124.0",
-    "google-genai>=1.55.0",
+    "fastapi[all]>=0.135.3",
+    "google-genai>=1.72.0",
 ]
 
 [dependency-groups]
@@ -18,7 +18,7 @@ dev = [
     "pre-commit>=4.5.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.14.8",
+    "ruff>=0.15.10",
     "ty>=0.0.1a32",
 ]
 
