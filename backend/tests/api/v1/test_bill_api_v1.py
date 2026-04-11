@@ -739,7 +739,6 @@ class TestExtractBillDetailsFromImage:
         def mock_get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
             return self.success_bill
 
-        monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", None)
         monkeypatch.setattr("app.api.v1.endpoints.bill.get_bill_details_from_image", mock_get_bill_details_from_image)
         yield None
 
