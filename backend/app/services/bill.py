@@ -4,19 +4,17 @@ from pydantic import BaseModel
 
 from app.core.settings import settings
 from app.schemas.bill import OCRBill, Outing, OutingSplit, Payment, PaymentPlan
-from app.services import gemini
+from app.services import litellm_service
 
 
 def get_bill_details_from_image(image_bytes: bytes, mime_type: str) -> OCRBill:
-    bill_data: str | None = None
+    if not settings.LITELLM_MODEL:
+        raise ValueError("LITELLM_MODEL is not set in settings.")
 
-    if settings.GEMINI_API_KEY:
-        bill_data = gemini.get_bill_details_from_image(
-            image_bytes=image_bytes,
-            mime_type=mime_type,
-        )
-    else:
-        raise ValueError("API key is not set in settings for any LLM.")
+    bill_data = litellm_service.get_bill_details_from_image(
+        image_bytes=image_bytes,
+        mime_type=mime_type,
+    )
 
     return OCRBill.model_validate_json(bill_data)
 
