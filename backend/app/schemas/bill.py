@@ -1,4 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+def to_camel(string: str) -> str:
+    parts = string.split("_")
+    return parts[0] + "".join(word.capitalize() for word in parts[1:])
 
 
 class OCRBillItem(BaseModel):
@@ -8,10 +15,25 @@ class OCRBillItem(BaseModel):
 
 
 class OCRBill(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     items: list[OCRBillItem]
     tax_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     service_charge: float = Field(default=0.0, ge=0.0, le=1.0)
     amount_paid: float = Field(gt=0.0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def filter_invalid_items(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            items = data.get("items") or data.get("Items") or []
+            data["items"] = [
+                item
+                for item in items
+                if (item.get("price", 0) if isinstance(item, dict) else getattr(item, "price", 0)) > 0
+                and (item.get("quantity", 0) if isinstance(item, dict) else getattr(item, "quantity", 0)) > 0
+            ]
+        return data
 
 
 class Item(BaseModel):
