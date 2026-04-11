@@ -10,3 +10,7 @@ updates:
     directory: "/backend" # Location of package manifests
     schedule:
       interval: "daily"
+    groups:
+      python-deps:
+        patterns:
+          - "*"
