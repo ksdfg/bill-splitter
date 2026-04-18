@@ -1,18 +1,42 @@
-import React, { useEffect } from "react";
+import { useEffect, type ChangeEvent, type KeyboardEvent } from "react";
 import { X, Upload, Plus } from "lucide-react";
 import ItemForm from "./ItemForm";
+import type { BillItem, BillItemField, BillItemFieldValue } from "../types";
+
+interface BillModalProps {
+  show: boolean;
+  editingBillId: string | null;
+  paidBy: string;
+  onPaidByChange: (value: string) => void;
+  taxRate: string;
+  onTaxRateChange: (value: string) => void;
+  serviceCharge: string;
+  onServiceChargeChange: (value: string) => void;
+  amountPaid: string;
+  onAmountPaidChange: (value: string) => void;
+  items: BillItem[];
+  isUploading: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  onUploadReceipt: (file: File) => void | Promise<void>;
+  onAddItem: () => void;
+  onItemChange: (index: number, field: BillItemField, value: BillItemFieldValue) => void;
+  onDeleteItem: (index: number) => void;
+  onConsumerKeyDown: (index: number, event: KeyboardEvent<HTMLInputElement>) => void;
+  onRemoveConsumer: (itemIndex: number, consumerName: string) => void;
+}
 
 const BillModal = ({
   show,
   editingBillId,
   paidBy,
-  setPaidBy,
+  onPaidByChange,
   taxRate,
-  setTaxRate,
+  onTaxRateChange,
   serviceCharge,
-  setServiceCharge,
+  onServiceChargeChange,
   amountPaid,
-  setAmountPaid,
+  onAmountPaidChange,
   items,
   isUploading,
   onClose,
@@ -23,20 +47,20 @@ const BillModal = ({
   onDeleteItem,
   onConsumerKeyDown,
   onRemoveConsumer,
-}) => {
+}: BillModalProps) => {
   useEffect(() => {
     if (!show || isUploading) return;
 
-    const handlePaste = (e) => {
-      const clipboardItems = e.clipboardData?.items;
+    const handlePaste = (event: ClipboardEvent) => {
+      const clipboardItems = event.clipboardData?.items;
       if (!clipboardItems) return;
 
-      for (let i = 0; i < clipboardItems.length; i++) {
-        if (clipboardItems[i].type.indexOf("image") !== -1) {
-          const file = clipboardItems[i].getAsFile();
+      for (let index = 0; index < clipboardItems.length; index += 1) {
+        if (clipboardItems[index].type.includes("image")) {
+          const file = clipboardItems[index].getAsFile();
           if (file) {
-            e.preventDefault();
-            onUploadReceipt({ target: { files: [file] } });
+            event.preventDefault();
+            void onUploadReceipt(file);
             break;
           }
         }
@@ -46,6 +70,13 @@ const BillModal = ({
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
   }, [show, isUploading, onUploadReceipt]);
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      void onUploadReceipt(file);
+    }
+  };
 
   return (
     <div
@@ -64,7 +95,6 @@ const BillModal = ({
       </div>
 
       <div className="p-6 space-y-6">
-        {/* OCR Upload */}
         <div className="border-2 border-dashed border-gray-400 dark:border-gray-600 p-4 hover:border-gray-900 dark:hover:border-gray-300 transition-colors">
           <label className="flex items-center gap-3 cursor-pointer">
             <Upload size={18} className="text-gray-700 dark:text-gray-300" strokeWidth={2} />
@@ -77,14 +107,13 @@ const BillModal = ({
             <input
               type="file"
               accept="image/jpeg,image/png"
-              onChange={onUploadReceipt}
+              onChange={handleFileChange}
               className="hidden"
               disabled={isUploading}
             />
           </label>
         </div>
 
-        {/* Paid By */}
         <div>
           <label className="block text-xs text-gray-700 dark:text-gray-400 mb-2 font-mono tracking-wider">
             PAID BY
@@ -92,21 +121,21 @@ const BillModal = ({
           <input
             type="text"
             value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
+            onChange={(event) => onPaidByChange(event.target.value)}
             placeholder="enter name"
             className="w-full px-0 py-2 bg-transparent border-b-2 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 transition-colors"
           />
         </div>
 
-        {/* Amount Paid */}
         <div>
           <label className="block text-xs text-gray-700 dark:text-gray-400 mb-2 font-mono tracking-wider">
             AMOUNT PAID
           </label>
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={amountPaid}
-            onChange={(e) => setAmountPaid(e.target.value)}
+            onChange={(event) => onAmountPaidChange(event.target.value)}
             placeholder="0.00"
             className="w-full px-0 py-2 bg-transparent border-b-2 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 transition-colors font-mono"
             min="0"
@@ -114,16 +143,16 @@ const BillModal = ({
           />
         </div>
 
-        {/* Tax & Service */}
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-xs text-gray-700 dark:text-gray-400 mb-2 font-mono tracking-wider">
               TAX (%)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={taxRate}
-              onChange={(e) => setTaxRate(e.target.value)}
+              onChange={(event) => onTaxRateChange(event.target.value)}
               placeholder="5.0"
               className="w-full px-0 py-2 bg-transparent border-b-2 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 transition-colors font-mono"
               min="0"
@@ -136,9 +165,10 @@ const BillModal = ({
               SERVICE (%)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={serviceCharge}
-              onChange={(e) => setServiceCharge(e.target.value)}
+              onChange={(event) => onServiceChargeChange(event.target.value)}
               placeholder="10.0"
               className="w-full px-0 py-2 bg-transparent border-b-2 border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 transition-colors font-mono"
               min="0"
@@ -148,7 +178,6 @@ const BillModal = ({
           </div>
         </div>
 
-        {/* Items Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs text-gray-700 dark:text-gray-400 font-mono tracking-wider">ITEMS</h3>
@@ -178,7 +207,6 @@ const BillModal = ({
           </button>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-4 pt-4">
           <button
             onClick={onSave}

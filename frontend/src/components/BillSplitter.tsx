@@ -1,183 +1,45 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Receipt, Plus, ArrowLeft } from "lucide-react";
 import BillCard from "./BillCard";
 import BillModal from "./BillModal";
 import PaymentPlansView from "./PaymentPlansView";
 import EmptyState from "./EmptyState";
-import { uploadReceipt, calculateSplit } from "../utils/api";
+import { useBillStore } from "../stores/useBillStore";
 
 const BillSplitter = () => {
-  const [bills, setBills] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingBillId, setEditingBillId] = useState(null);
-  const [paymentPlans, setPaymentPlans] = useState([]);
-  const [showResults, setShowResults] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [paidBy, setPaidBy] = useState("");
-  const [taxRate, setTaxRate] = useState("5");
-  const [serviceCharge, setServiceCharge] = useState("0");
-  const [items, setItems] = useState([{ name: "", price: 0, quantity: 1, consumed_by: [] }]);
-  const [amountPaid, setAmountPaid] = useState("");
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const {
+    bills,
+    draft,
+    paymentPlans,
+    showModal,
+    showResults,
+    isUploading,
+    setPaidBy,
+    setTaxRate,
+    setServiceCharge,
+    setAmountPaid,
+    handleAddBill,
+    handleEditBill,
+    handleDeleteBill,
+    handleSaveBill,
+    handleAddItem,
+    handleDeleteItem,
+    handleItemChange,
+    handleConsumerKeyDown,
+    removeConsumer,
+    handleUploadReceipt,
+    handleCalculateSplit,
+    handleCloseModal,
+    handleBackToBills,
+  } = useBillStore();
+  const { editingBillId, paidBy, taxRate, serviceCharge, amountPaid, items } = draft;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const resetForm = () => {
-    setPaidBy("");
-    setTaxRate("5");
-    setServiceCharge("0");
-    setItems([{ name: "", price: 0, quantity: 1, consumed_by: [] }]);
-    setAmountPaid("");
-    setEditingBillId(null);
-  };
-
-  const handleAddBill = () => {
-    setShowModal(true);
-    setShowResults(false);
-    setPaymentPlans([]);
-    resetForm();
-  };
-
-  const handleEditBill = (bill) => {
-    setEditingBillId(bill.id);
-    setPaidBy(bill.paid_by);
-    setTaxRate((bill.tax_rate * 100).toString());
-    setServiceCharge((bill.service_charge * 100).toString());
-    setItems(bill.items);
-    setAmountPaid(bill.amount_paid != null ? String(bill.amount_paid) : "");
-    setShowModal(true);
-    setShowResults(false);
-    setPaymentPlans([]);
-  };
-
-  const handleDeleteBill = (id) => {
-    setBills(bills.filter((b) => b.id !== id));
-  };
-
-  const handleSaveBill = () => {
-    if (!paidBy.trim()) {
-      alert("Please enter who paid the bill");
-      return;
-    }
-
-    const validItems = items.filter(
-      (item) => item.name.trim() && item.price > 0 && item.quantity > 0 && item.consumed_by.length > 0,
-    );
-
-    if (validItems.length === 0) {
-      alert("Please add at least one valid item with consumers");
-      return;
-    }
-
-    const bill = {
-      id: editingBillId || Date.now().toString(),
-      paid_by: paidBy.trim(),
-      tax_rate: parseFloat(taxRate) / 100,
-      service_charge: parseFloat(serviceCharge) / 100,
-      items: validItems,
-      amount_paid: amountPaid ? parseFloat(amountPaid) : 0,
-    };
-
-    if (editingBillId) {
-      setBills(bills.map((b) => (b.id === editingBillId ? bill : b)));
-    } else {
-      setBills([...bills, bill]);
-    }
-
-    setShowModal(false);
-    resetForm();
-  };
-
-  const handleAddItem = () => {
-    setItems([...items, { name: "", price: 0, quantity: 1, consumed_by: [] }]);
-  };
-
-  const handleDeleteItem = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
-    setItems(newItems);
-  };
-
-  const handleConsumerKeyDown = (index, e) => {
-    if (e.key === "Enter" && e.target.value.trim()) {
-      e.preventDefault();
-      const newItems = [...items];
-      const currentConsumers = newItems[index].consumed_by || [];
-      const newConsumer = e.target.value.trim();
-
-      if (!currentConsumers.includes(newConsumer)) {
-        newItems[index].consumed_by = [...currentConsumers, newConsumer];
-        setItems(newItems);
-      }
-      e.target.value = "";
-    }
-  };
-
-  const removeConsumer = (itemIndex, consumerName) => {
-    const newItems = [...items];
-    newItems[itemIndex].consumed_by = newItems[itemIndex].consumed_by.filter((c) => c !== consumerName);
-    setItems(newItems);
-  };
-
-  const handleUploadReceipt = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-
-    try {
-      const ocrData = await uploadReceipt(file);
-
-      setTaxRate((ocrData.tax_rate * 100).toString());
-      setServiceCharge((ocrData.service_charge * 100).toString());
-      setItems(
-        ocrData.items.map((item) => ({
-          ...item,
-          consumed_by: [],
-        })),
-      );
-      // populate amount paid from OCR response if available
-      setAmountPaid(ocrData.amount_paid.toString());
-
-      alert("Receipt scanned! Please add who consumed each item.");
-    } catch (error) {
-      console.error("OCR error:", error);
-      alert("Failed to scan receipt. Please try again.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleCalculateSplit = async () => {
-    if (bills.length === 0) {
-      alert("Please add at least one bill");
-      return;
-    }
-
-    try {
-      const result = await calculateSplit(bills);
-      setPaymentPlans(result.payment_plans);
-      setShowResults(true);
-    } catch (error) {
-      console.error("Split calculation error:", error);
-      alert("Failed to calculate split. Please try again.");
-    }
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    resetForm();
-  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-stone-900 p-6 lg:p-8 transition-colors">
@@ -229,13 +91,13 @@ const BillSplitter = () => {
                   show={showModal}
                   editingBillId={editingBillId}
                   paidBy={paidBy}
-                  setPaidBy={setPaidBy}
+                  onPaidByChange={setPaidBy}
                   taxRate={taxRate}
-                  setTaxRate={setTaxRate}
+                  onTaxRateChange={setTaxRate}
                   serviceCharge={serviceCharge}
-                  setServiceCharge={setServiceCharge}
+                  onServiceChargeChange={setServiceCharge}
                   amountPaid={amountPaid}
-                  setAmountPaid={setAmountPaid}
+                  onAmountPaidChange={setAmountPaid}
                   items={items}
                   isUploading={isUploading}
                   onClose={handleCloseModal}
@@ -303,11 +165,13 @@ const BillSplitter = () => {
                   show={showModal}
                   editingBillId={editingBillId}
                   paidBy={paidBy}
-                  setPaidBy={setPaidBy}
+                  onPaidByChange={setPaidBy}
                   taxRate={taxRate}
-                  setTaxRate={setTaxRate}
+                  onTaxRateChange={setTaxRate}
                   serviceCharge={serviceCharge}
-                  setServiceCharge={setServiceCharge}
+                  onServiceChargeChange={setServiceCharge}
+                  amountPaid={amountPaid}
+                  onAmountPaidChange={setAmountPaid}
                   items={items}
                   isUploading={isUploading}
                   onClose={handleCloseModal}
@@ -325,7 +189,7 @@ const BillSplitter = () => {
             {showResults && (
               <div className="space-y-6">
                 <button
-                  onClick={() => setShowResults(false)}
+                  onClick={handleBackToBills}
                   className="w-full py-3 border-2 border-gray-400 dark:border-gray-600 text-gray-800 dark:text-gray-300 hover:border-gray-900 dark:hover:border-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors flex items-center justify-center gap-2"
                 >
                   <ArrowLeft size={16} strokeWidth={2} />
@@ -347,4 +211,5 @@ const BillSplitter = () => {
     </div>
   );
 };
+
 export default BillSplitter;

@@ -1,7 +1,11 @@
-import React from "react";
 import PaymentPlanCard from "./PaymentPlanCard";
+import type { PaymentPlan } from "../types";
 
-const PaymentPlansView = ({ paymentPlans }) => {
+interface PaymentPlansViewProps {
+  paymentPlans: PaymentPlan[];
+}
+
+const PaymentPlansView = ({ paymentPlans }: PaymentPlansViewProps) => {
   const plansWithPayments = paymentPlans.filter((plan) => plan.payments.length > 0);
 
   return (
