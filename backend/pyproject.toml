@@ -9,17 +9,17 @@ authors = [
 ]
 
 dependencies = [
-    "fastapi[all]>=0.124.0",
-    "litellm==1.83.4",
+    "fastapi[all]>=0.136.3",
+    "litellm==1.86.2",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.5.0",
+    "pre-commit>=4.6.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "ruff>=0.14.8",
-    "ty>=0.0.1a32",
+    "ruff>=0.15.15",
+    "ty>=0.0.42",
 ]
 
 [tool.ruff]
