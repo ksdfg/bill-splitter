@@ -67,23 +67,15 @@ class TestGetBillDetailsFromImage:
     llm_success_response_text = success_bill.model_dump_json()
 
     @pytest.fixture
-    def _mock_gemini_service_method(self, monkeypatch: pytest.MonkeyPatch):
+    def _mock_litellm_service_method(self, monkeypatch: pytest.MonkeyPatch):
         outer_self = self
 
         class MockLLMService:
             def get_bill_details_from_image(self, image_bytes: bytes, mime_type: str) -> str:
-                # mirror the original behavior by returning the same JSON text
                 return outer_self.llm_success_response_text
 
-        monkeypatch.setattr("app.core.settings.settings.GEMINI_API_KEY", "fake-api-key")
-        monkeypatch.setattr("app.services.bill.gemini", MockLLMService())
+        monkeypatch.setattr("app.services.bill.litellm_service", MockLLMService())
 
-    def test_gemini(self, _mock_gemini_service_method):
+    def test_litellm(self, _mock_litellm_service_method):
         ocr_bill = get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
         assert ocr_bill == self.success_bill
-
-    def test_no_llm_service_set(self, monkeypatch: pytest.MonkeyPatch):
-        monkeypatch.setattr("app.services.gemini.settings.GEMINI_API_KEY", None)
-        with pytest.raises(ValueError) as exc:
-            get_bill_details_from_image(image_bytes=b"fake-image-bytes", mime_type="image/png")
-        assert "API key is not set in settings for any LLM." == str(exc.value)
