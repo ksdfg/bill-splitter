@@ -1,14 +1,26 @@
-import React from "react";
 import { Trash2 } from "lucide-react";
+import type { Bill } from "../types";
 
-const BillCard = ({ bill, onEdit, onDelete }) => {
+interface BillCardProps {
+  bill: Bill;
+  onEdit: (bill: Bill) => void;
+  onDelete: (id: string) => void;
+}
+
+const BillCard = ({ bill, onEdit, onDelete }: BillCardProps) => {
   return (
     <div className="group border-2 border-gray-900 dark:border-gray-200 p-6 mb-4 hover:border-gray-700 dark:hover:border-gray-400 transition-all duration-200">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <div className="text-xs text-gray-700 dark:text-gray-400 mb-1 font-mono tracking-wider">PAID BY</div>
-          <h3 className="text-lg font-normal text-gray-900 dark:text-gray-100">{bill.paid_by}</h3>
-          <p className="text-base text-gray-900 dark:text-gray-100 font-mono mt-1">₹{bill.amount_paid.toFixed(2)}</p>
+          <div className="text-xs text-gray-700 dark:text-gray-400 mb-1 font-mono tracking-wider">
+            PAID BY
+          </div>
+          <h3 className="text-lg font-normal text-gray-900 dark:text-gray-100">
+            {bill.paid_by}
+          </h3>
+          <p className="text-base text-gray-900 dark:text-gray-100 font-mono mt-1">
+            ₹{bill.amount_paid.toFixed(2)}
+          </p>
         </div>
         <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
           <button
@@ -16,7 +28,12 @@ const BillCard = ({ bill, onEdit, onDelete }) => {
             className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors p-2"
             title="Edit"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -36,20 +53,29 @@ const BillCard = ({ bill, onEdit, onDelete }) => {
       </div>
 
       <div className="space-y-1.5 mb-4 text-sm">
-        {bill.items.map((item, idx) => (
-          <div key={idx} className="flex justify-between text-gray-800 dark:text-gray-200">
+        {bill.items.map((item, index) => (
+          <div
+            key={index}
+            className="flex justify-between text-gray-800 dark:text-gray-200"
+          >
             <span>
               {item.quantity} × {item.name}
             </span>
-            <span className="font-mono">₹{(item.price * item.quantity).toFixed(2)}</span>
+            <span className="font-mono">
+              ₹{(item.price * item.quantity).toFixed(2)}
+            </span>
           </div>
         ))}
       </div>
 
       {(bill.tax_rate > 0 || bill.service_charge > 0) && (
         <div className="pt-3 border-t-2 border-gray-300 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-400 font-mono space-x-4 tracking-wider">
-          {bill.tax_rate > 0 && <span>tax: {(bill.tax_rate * 100).toFixed(0)}%</span>}
-          {bill.service_charge > 0 && <span>service: {(bill.service_charge * 100).toFixed(0)}%</span>}
+          {bill.tax_rate > 0 && (
+            <span>tax: {(bill.tax_rate * 100).toFixed(0)}%</span>
+          )}
+          {bill.service_charge > 0 && (
+            <span>service: {(bill.service_charge * 100).toFixed(0)}%</span>
+          )}
         </div>
       )}
     </div>
