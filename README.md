@@ -11,7 +11,7 @@ Before running the application, you need to set up environment variables:
 1. Copy the backend example environment file
 
    ```bash
-   cp .env.example .env
+   cp backend/.env.example backend/.env
    ```
 
 2. Copy the frontend example environment file
@@ -20,7 +20,7 @@ Before running the application, you need to set up environment variables:
    cp frontend/.env.example frontend/.env
    ```
 
-3. Edit the files and configure the variables as described in the example files.
+3. Edit `backend/.env` and `frontend/.env` and configure the variables as described in the example files.
 
 ### Spin up the services
 
@@ -32,7 +32,7 @@ docker compose up
 
 This will start all necessary services for the application.
 
-The backend service reads environment variables from the repo-root `.env`. The frontend service reads environment variables from `frontend/.env` and exposes them to the browser at container startup.
+The backend service reads environment variables from `backend/.env`. The frontend service reads environment variables from `frontend/.env` and exposes them to the browser at container startup.
 
 ### Accessing the Frontend
 
