@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const runtimeConfig = window.__APP_CONFIG__ || {};
+const API_BASE_URL = runtimeConfig.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL;
 if (!API_BASE_URL) {
   throw new Error("API_BASE_URL is not defined");
 }

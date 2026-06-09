@@ -7,10 +7,6 @@ ARG NGINX_VERSION=alpine3.22
 # Use a lightweight Node.js image for building (customizable via ARG)
 FROM node:${NODE_VERSION} AS builder
 
-# Accept build argument for API base URL
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -35,6 +31,9 @@ FROM nginxinc/nginx-unprivileged:${NGINX_VERSION} AS runner
 # Use a built-in non-root user for security best practices
 USER nginx
 
+# Copy startup script that renders runtime config before Nginx starts
+COPY --chown=nginx:nginx --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
+
 # Copy custom Nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
@@ -45,6 +44,6 @@ COPY --chown=nginx:nginx  --from=builder /app/dist /usr/share/nginx/html
 # Note: The default NGINX container now listens on port 8080 instead of 80
 EXPOSE 8080
 
-# Start Nginx directly with custom config
-ENTRYPOINT ["nginx", "-c", "/etc/nginx/nginx.conf"]
-CMD ["-g", "daemon off;"]
+# Render runtime config, then start Nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
