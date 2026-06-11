@@ -8,13 +8,19 @@ A small utility to split bills amongst friends
 
 Before running the application, you need to set up environment variables:
 
-1. Copy the example environment file
+1. Copy the backend example environment file
 
    ```bash
-   cp .env.example .env
+   cp backend/.env.example backend/.env
    ```
 
-2. Edit `.env` and configure the variables as described in the example file.
+2. Copy the frontend example environment file
+
+   ```bash
+   cp frontend/.env.example frontend/.env
+   ```
+
+3. Edit `backend/.env` and `frontend/.env` and configure the variables as described in the example files.
 
 ### Spin up the services
 
@@ -25,6 +31,8 @@ docker compose up
 ```
 
 This will start all necessary services for the application.
+
+The backend service reads environment variables from `backend/.env`. The frontend service reads environment variables from `frontend/.env` and exposes them to the browser at container startup.
 
 ### Accessing the Frontend
 

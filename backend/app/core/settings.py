@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -9,7 +14,7 @@ class Settings(BaseSettings):
     LITELLM_API_BASE: str  # Base URL for your LLM API
     LITELLM_API_KEY: str  # API key for your LLM API
 
-    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
 
 
 settings = Settings()  # type: ignore
