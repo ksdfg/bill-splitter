@@ -727,7 +727,6 @@ class TestSplit:
     def test_input_validation_failure(self, test_client, outing_data: dict, error_response: dict):
         response = test_client.post("/api/v1/bills/split", json=outing_data)
         assert response.status_code == 422
-        print(response.json())
         assert response.json() == error_response
 
 
