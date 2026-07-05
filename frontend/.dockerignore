@@ -20,11 +20,12 @@ reports/
 # Ignore environment and config files (sensitive data)
 *.env*
 *.log
+README.md
 
 # Ignore TypeScript build artifacts (if using TypeScript)
 *.tsbuildinfo
 
-# Ignore lockfiles (optional if using Docker for package installation)
+# Ignore package-manager debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -44,6 +45,3 @@ Dockerfile
 .dockerignore
 docker-compose.yml
 docker-compose.override.yml
-
-# Ignore build-specific cache files
-*.lock

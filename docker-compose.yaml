@@ -1,16 +1,22 @@
 services:
   backend:
+    image: ghcr.io/ksdfg/bill-splitter/backend:${IMAGE_TAG:-local}
     build:
       context: ./backend
       dockerfile: Dockerfile
+      tags:
+        - ghcr.io/ksdfg/bill-splitter/backend:local
     ports:
       - "8000:80"
     env_file:
       - ./backend/.env
   frontend:
+    image: ghcr.io/ksdfg/bill-splitter/frontend:${IMAGE_TAG:-local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      tags:
+        - ghcr.io/ksdfg/bill-splitter/frontend:local
     env_file:
       - ./frontend/.env
     ports:
