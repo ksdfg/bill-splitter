@@ -58,7 +58,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/backend:${{ steps.vars.outputs.short_sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/backend:${{ steps.vars.outputs.short_sha }}
+            ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && format('ghcr.io/{0}/{1}/backend:latest', github.repository_owner, github.event.repository.name) || '' }}
 
   frontend:
     runs-on: ubuntu-latest
@@ -105,4 +107,6 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/frontend:${{ steps.vars.outputs.short_sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/frontend:${{ steps.vars.outputs.short_sha }}
+            ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && format('ghcr.io/{0}/{1}/frontend:latest', github.repository_owner, github.event.repository.name) || '' }}
