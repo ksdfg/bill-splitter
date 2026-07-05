@@ -1,0 +1,171 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: "Existing GHCR image tag to release, for example latest or a short commit SHA."
+        required: false
+        default: latest
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+  DEPLOY_PATH: /home/ubuntu/bill-splitter-deployment/bill-splitter
+
+jobs:
+  release:
+    name: Release and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Resolve release target
+        id: target
+        shell: bash
+        env:
+          SOURCE_TAG_INPUT: ${{ github.event.inputs.source_tag }}
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin '+refs/heads/*:refs/remotes/origin/*'
+
+          source_tag="${SOURCE_TAG_INPUT:-latest}"
+          source_tag="${source_tag:-latest}"
+
+          if [[ ! "$source_tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::source_tag must be a valid Docker tag."
+            exit 1
+          fi
+
+          if [[ "$source_tag" == "latest" ]]; then
+            target_sha="$(git rev-parse origin/master)"
+          elif git rev-parse --verify --quiet "${source_tag}^{commit}" >/dev/null; then
+            target_sha="$(git rev-parse "${source_tag}^{commit}")"
+          else
+            echo "::error::source_tag must be 'latest' or a commit SHA that exists in this repository."
+            exit 1
+          fi
+
+          echo "source_tag=$source_tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$target_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate next semantic version
+        id: semver
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          tag_prefix: v
+          release_branches: master
+          commit_sha: ${{ steps.target.outputs.sha }}
+          fetch_all_tags: true
+          dry_run: true
+
+      - name: Normalize release version
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_tag="${{ steps.semver.outputs.new_tag }}"
+          release_version="${{ steps.semver.outputs.new_version }}"
+          previous_tag="${{ steps.semver.outputs.previous_tag }}"
+
+          if [[ "$previous_tag" == "0.0.0" || "$previous_tag" == "v0.0.0" || -z "$previous_tag" ]]; then
+            release_tag="v0.1.0"
+            release_version="0.1.0"
+          fi
+
+          if git rev-parse --verify --quiet "refs/tags/$release_tag" >/dev/null; then
+            echo "::error::Release tag $release_tag already exists."
+            exit 1
+          fi
+
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "version=$release_version" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate source images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_image="${REGISTRY}/${IMAGE_NAMESPACE}/backend:${{ steps.target.outputs.source_tag }}"
+          frontend_image="${REGISTRY}/${IMAGE_NAMESPACE}/frontend:${{ steps.target.outputs.source_tag }}"
+
+          docker buildx imagetools inspect "$backend_image" >/dev/null
+          docker buildx imagetools inspect "$frontend_image" >/dev/null
+
+      - name: Retag images for release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_image="${REGISTRY}/${IMAGE_NAMESPACE}/backend"
+          frontend_image="${REGISTRY}/${IMAGE_NAMESPACE}/frontend"
+          source_tag="${{ steps.target.outputs.source_tag }}"
+          release_tag="${{ steps.release.outputs.tag }}"
+
+          docker buildx imagetools create \
+            --tag "$backend_image:$release_tag" \
+            "$backend_image:$source_tag"
+
+          docker buildx imagetools create \
+            --tag "$frontend_image:$release_tag" \
+            "$frontend_image:$source_tag"
+
+      - name: Push release git tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.release.outputs.tag }}" "${{ steps.target.outputs.sha }}" -m "Release ${{ steps.release.outputs.tag }}"
+          git push origin "${{ steps.release.outputs.tag }}"
+
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          port: ${{ secrets.VM_PORT || '22' }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: RELEASE_TAG,DEPLOY_PATH
+          script: |
+            set -euo pipefail
+
+            cd "$DEPLOY_PATH"
+            git pull --ff-only origin master
+
+            IMAGE_TAG="$RELEASE_TAG" docker compose pull
+            IMAGE_TAG="$RELEASE_TAG" docker compose up -d --no-build --remove-orphans
+
+            docker compose ps
+            curl --fail --show-error --silent http://localhost:8000/api/v1/health/
