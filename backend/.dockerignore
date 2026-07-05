@@ -2,7 +2,9 @@
 .github/
 .idea/
 .mypy_cache/
+.pytest_cache/
 .ruff_cache/
+.coverage
 
 venv/
 .venv/
@@ -18,3 +20,4 @@ Makefile
 mypy.ini
 README.md
 sa.json
+tests/

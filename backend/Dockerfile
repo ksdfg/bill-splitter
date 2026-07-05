@@ -14,7 +14,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 COPY pyproject.toml uv.lock ./
 
 # Install production dependencies without copying the application source
-RUN uv sync --frozen --no-dev --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
 
 # =========================================
 # Stage 2: Prepare the FastAPI Runtime
