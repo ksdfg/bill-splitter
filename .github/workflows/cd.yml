@@ -112,6 +112,7 @@ jobs:
 
             IMAGE_TAG="$RELEASE_TAG" docker compose pull
             IMAGE_TAG="$RELEASE_TAG" docker compose up -d --no-build --remove-orphans
-
             docker compose ps
+
+            sleep 5
             curl --fail --show-error --silent http://localhost:8000/api/v1/health/
