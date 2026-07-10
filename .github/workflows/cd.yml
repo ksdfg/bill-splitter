@@ -58,7 +58,7 @@ jobs:
           release_branches: master
           commit_sha: ${{ steps.target.outputs.sha }}
           fetch_all_tags: true
-          default_bump: false
+          default_bump: patch
 
       - name: Create GitHub release
         if: ${{ steps.tag_version.outputs.new_tag != '' }}
@@ -90,7 +90,7 @@ jobs:
     if: ${{ needs.version.outputs.release_tag != '' }}
     environment:
       name: production
-      url: ${{ vars.PRODUCTION_URL }}
+      url: ${{ vars.URL }}
 
     steps:
       - name: Deploy to VM

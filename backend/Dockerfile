@@ -39,4 +39,4 @@ COPY --chown=billsplitter:billsplitter app ./app
 USER billsplitter
 
 # Run the FastAPI application
-CMD ["sh", "-c", "exec /app/.venv/bin/uvicorn app.main:app --host=0.0.0.0 --port=80 --workers=$(( $(nproc) * 2 + 1 ))"]
+CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host=0.0.0.0", "--port=80"]
