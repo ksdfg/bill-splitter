@@ -7,4 +7,4 @@ if [[ -z "$path" ]]; then
 fi
 
 # Format
-ruff format ${path}
+uv run ruff format ${path}
