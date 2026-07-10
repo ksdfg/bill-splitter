@@ -21,16 +21,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version-file: "backend/.python-version"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8
+        uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
         working-directory: ./backend
 
       - name: Run linting
