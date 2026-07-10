@@ -8,5 +8,5 @@ if [[ -z "$path" ]]; then
 fi
 
 # Lint
-ty check $path
+uv run ty check $path
 uv run ruff check $path
